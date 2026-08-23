@@ -1,0 +1,6 @@
+{
+  "name": "NoPhish",
+  "description": "Multi-Layered Phishing URL Detection System with URL structure analysis, RALM threat intelligence, NLP semantic analysis, and explainability engine",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
