@@ -19,9 +19,38 @@ data class PhishingAnalysisResult(
     val analysisBreakdown: AnalysisBreakdown = AnalysisBreakdown(),
     @param:Json(name = "user_explanation")
     val userExplanation: String = "",
+    @param:Json(name = "engine_telemetry")
+    val engineTelemetry: EngineTelemetry = EngineTelemetry(),
     val rawJson: String = "",
     val scannedAt: Long = System.currentTimeMillis(),
     val contextText: String = ""
+)
+
+@Keep
+@JsonClass(generateAdapter = true)
+data class EngineTelemetry(
+    @param:Json(name = "ml_probability")
+    val mlProbability: Float = 0.0f,
+    @param:Json(name = "ml_confidence")
+    val mlConfidence: Float = 0.0f,
+    @param:Json(name = "ml_top_contributors")
+    val mlTopContributors: List<String> = emptyList(),
+    @param:Json(name = "rag_top_match")
+    val ragTopMatch: String? = null,
+    @param:Json(name = "rag_cosine_similarity")
+    val ragCosineSimilarity: Float = 0.0f,
+    @param:Json(name = "rag_matched_iocs")
+    val ragMatchedIocs: List<String> = emptyList(),
+    @param:Json(name = "nlp_urgency_score")
+    val nlpUrgencyScore: Int = 0,
+    @param:Json(name = "nlp_imperative_ratio")
+    val nlpImperativeRatio: Float = 0.0f,
+    @param:Json(name = "nlp_tactics")
+    val nlpTactics: List<String> = emptyList(),
+    @param:Json(name = "shannon_entropy")
+    val shannonEntropy: Float = 0.0f,
+    @param:Json(name = "url_length")
+    val urlLength: Int = 0
 )
 
 @Keep

@@ -24,6 +24,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val db = PhishShieldDatabase.getDatabase(application)
     private val scanHistoryDao = db.scanHistoryDao()
     private val whitelistDao = db.whitelistDao()
+    private val threatIntelDao = db.threatIntelDao()
     private val engine = PhishingDetectorEngine(whitelistDao)
 
     private val moshi = Moshi.Builder().build()
@@ -60,7 +61,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val phishingDetectedCount: StateFlow<Int> = scanHistoryDao.getPhishingCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
-    // Threat Intelligence Feed Search & Filter
+    // Threat Intelligence Feed Search & Filter powered by SQLite Room DB
     private val _threatSearchQuery = MutableStateFlow("")
     val threatSearchQuery: StateFlow<String> = _threatSearchQuery.asStateFlow()
 
@@ -68,10 +69,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val selectedThreatCategory: StateFlow<String> = _selectedThreatCategory.asStateFlow()
 
     val knownThreats: StateFlow<List<com.example.data.model.KnownPhishingThreat>> = kotlinx.coroutines.flow.combine(
+        threatIntelDao.getAllThreats(),
         _threatSearchQuery,
         _selectedThreatCategory
-    ) { query, category ->
-        var list = com.example.data.model.ThreatDatabase.KNOWN_FAKE_WEBSITES
+    ) { dbThreats, query, category ->
+        val sourceList = if (dbThreats.isNotEmpty()) {
+            dbThreats.map { entity ->
+                com.example.data.model.KnownPhishingThreat(
+                    id = entity.id.toString(),
+                    title = entity.title,
+                    category = entity.category,
+                    targetBrand = entity.targetBrand,
+                    fakeDomain = entity.fakeDomain,
+                    sampleUrl = entity.sampleUrl,
+                    sampleMessage = entity.sampleMessage,
+                    riskScore = entity.riskScore,
+                    attackVector = entity.attackVector,
+                    indicatorsOfCompromise = entity.indicatorsOfCompromise.split(";").map { it.trim() }.filter { it.isNotEmpty() },
+                    deceptionTechnique = entity.deceptionTechnique
+                )
+            }
+        } else {
+            com.example.data.model.ThreatDatabase.KNOWN_FAKE_WEBSITES
+        }
+
+        var list = sourceList
         if (category != "ALL") {
             list = list.filter { it.category.equals(category, ignoreCase = true) }
         }
@@ -94,6 +116,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onThreatCategorySelect(category: String) {
         _selectedThreatCategory.value = category
+    }
+
+    fun addCustomThreat(
+        title: String,
+        domain: String,
+        category: String,
+        targetBrand: String,
+        attackVector: String,
+        sampleUrl: String,
+        sampleMessage: String
+    ) {
+        viewModelScope.launch {
+            threatIntelDao.insert(
+                com.example.data.model.ThreatIntelEntity(
+                    title = title.ifBlank { "Custom Threat: $domain" },
+                    category = category.ifBlank { "Banking" },
+                    targetBrand = targetBrand.ifBlank { domain },
+                    fakeDomain = domain.trim().lowercase(),
+                    sampleUrl = sampleUrl.ifBlank { "http://$domain" },
+                    sampleMessage = sampleMessage,
+                    riskScore = 95,
+                    attackVector = attackVector.ifBlank { "Credential Harvesting" },
+                    indicatorsOfCompromise = "$domain; custom user IOC",
+                    deceptionTechnique = "User-reported malicious threat indicator",
+                    source = "User Custom IOC"
+                )
+            )
+        }
+    }
+
+    fun deleteThreat(idString: String) {
+        val idLong = idString.toLongOrNull()
+        if (idLong != null) {
+            viewModelScope.launch {
+                threatIntelDao.deleteById(idLong)
+            }
+        }
     }
 
     fun loadThreatScenario(threat: com.example.data.model.KnownPhishingThreat) {

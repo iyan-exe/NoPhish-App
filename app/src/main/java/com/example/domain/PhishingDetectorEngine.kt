@@ -9,14 +9,27 @@ import com.example.data.api.GeminiPart
 import com.example.data.api.RetrofitClient
 import com.example.data.local.WhitelistDao
 import com.example.data.model.AnalysisBreakdown
+import com.example.data.model.EngineTelemetry
 import com.example.data.model.PhishingAnalysisResult
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
 import org.json.JSONObject
+import kotlin.math.roundToInt
 
+/**
+ * Multi-Layered Phishing URL Detection Engine.
+ *
+ * Integrates:
+ * 1. Supervised Machine Learning Classifier (UrlFeatureExtractor + SupervisedUrlClassifier)
+ * 2. Retrieval-Augmented Language Model & Semantic Vector Space (RagThreatRetriever)
+ * 3. NLP Semantic & Psychological Coercion Engine (NlpSemanticAnalyzer)
+ * 4. Lexical, Syntactic, & Path Obfuscation Heuristics (UrlStructureAnalyzer)
+ * 5. Brand Impersonation Radar & Levenshtein Distance (BrandImpersonationDetector)
+ * 6. SQLite Room Database Whitelist & Threat Repository
+ * 7. Gemini Neural Reasoning Engine
+ */
 class PhishingDetectorEngine(
     private val whitelistDao: WhitelistDao,
     private val geminiApiService: GeminiApiService = RetrofitClient.geminiService
@@ -30,11 +43,14 @@ class PhishingDetectorEngine(
         val trimmedUrl = url.trim()
         val trimmedContext = contextText.trim()
 
-        // 1. Run local multi-layer analysis pipeline
+        // 1. Run local multi-layer analysis pipeline with REAL algorithms
         val urlAnalysis = UrlStructureAnalyzer.analyze(trimmedUrl)
-        val threatIntel = ThreatIntelligenceService.evaluate(urlAnalysis.cleanHost, urlAnalysis.path, trimmedUrl)
+        val mlResult = SupervisedUrlClassifier.predict(trimmedUrl)
+        val ragQuery = "$trimmedUrl $trimmedContext ${urlAnalysis.cleanHost} ${urlAnalysis.path}"
+        val ragResult = RagThreatRetriever.retrieve(ragQuery)
         val nlpAnalysis = NlpSemanticAnalyzer.analyze(trimmedContext)
         val brandCheck = BrandImpersonationDetector.evaluate(urlAnalysis.cleanHost, trimmedContext, trimmedUrl)
+        val threatIntel = ThreatIntelligenceService.evaluate(urlAnalysis.cleanHost, urlAnalysis.path, trimmedUrl)
 
         // Whitelist DB check
         val whitelistEntity = whitelistDao.findByDomain(urlAnalysis.cleanHost)
@@ -48,14 +64,32 @@ class PhishingDetectorEngine(
         val verifiedBrandName = whitelistEntity?.brandName ?: if (urlAnalysis.isKnownLegitimate) "Verified Authority" else null
         val whitelistStatusStr = if (isWhitelisted) "Match Found ($verifiedBrandName)" else "No Match"
 
+        // Build Engine Telemetry from genuine executed implementations
+        val telemetry = EngineTelemetry(
+            mlProbability = mlResult.probability,
+            mlConfidence = mlResult.confidencePercentage,
+            mlTopContributors = mlResult.topContributors.map { it.description },
+            ragTopMatch = ragResult.matchedCampaignTitle,
+            ragCosineSimilarity = ragResult.highestSimilarity,
+            ragMatchedIocs = ragResult.topMatches.firstOrNull()?.matchedTerms ?: emptyList(),
+            nlpUrgencyScore = nlpAnalysis.urgencyScore,
+            nlpImperativeRatio = nlpAnalysis.imperativeRatio,
+            nlpTactics = nlpAnalysis.pressureTactics,
+            shannonEntropy = mlResult.features.vector[18],
+            urlLength = trimmedUrl.length
+        )
+
         // Baseline local synthesis
         val localResult = synthesizeLocalResult(
             url = trimmedUrl,
             contextText = trimmedContext,
             urlAnalysis = urlAnalysis,
-            threatIntel = threatIntel,
+            mlResult = mlResult,
+            ragResult = ragResult,
             nlpAnalysis = nlpAnalysis,
             brandCheck = brandCheck,
+            threatIntel = threatIntel,
+            telemetry = telemetry,
             isWhitelisted = isWhitelisted,
             whitelistBrand = verifiedBrandName
         )
@@ -75,6 +109,9 @@ class PhishingDetectorEngine(
                     cleanHost = urlAnalysis.cleanHost,
                     isWhitelisted = isWhitelisted,
                     whitelistBrand = verifiedBrandName,
+                    mlResult = mlResult,
+                    ragResult = ragResult,
+                    nlpAnalysis = nlpAnalysis,
                     localThreats = localResult.detectedThreats,
                     localScore = localResult.riskScore
                 )
@@ -93,13 +130,12 @@ class PhishingDetectorEngine(
                     systemInstruction = GeminiContent(
                         parts = listOf(
                             GeminiPart(
-                                text = "You are an elite Cybersecurity Threat Intelligence & Phishing URL Classifier. Evaluate the target URL and context. Distinguish between genuine established domains (e.g. github.com, apple.com, google.com, amazon.com, wikipedia.org, official banks) which are Safe (0-10% risk), and actual phishing attempts (spoofed domains, fake brands, typosquats, raw IPs, suspicious TLDs, panic lures) which are Phishing (70-100% risk). Respond ONLY in valid JSON conforming to the requested schema."
+                                text = "You are an elite Cybersecurity Threat Intelligence & Phishing URL Classifier. Evaluate the target URL, RAG threat intelligence, and ML vector metrics. Distinguish between genuine established domains (Safe 0-10%) and actual phishing attempts (Phishing 70-100%). Respond ONLY in valid JSON conforming to the requested schema."
                             )
                         )
                     )
                 )
 
-                // Try primary model first, fallback to withModel if needed
                 val response = try {
                     geminiApiService.generateContent(apiKey, request)
                 } catch (e: Exception) {
@@ -114,8 +150,8 @@ class PhishingDetectorEngine(
                         fallback = localResult,
                         originalUrl = trimmedUrl,
                         originalContext = trimmedContext,
-                        isWhitelisted = isWhitelisted,
-                        whitelistStatusStr = whitelistStatusStr
+                        whitelistStatusStr = whitelistStatusStr,
+                        telemetry = telemetry
                     )
 
                     if (parsed != null) {
@@ -126,7 +162,6 @@ class PhishingDetectorEngine(
                                 urlAnalysis.isIpAddress ||
                                 urlAnalysis.isPunycode
 
-                        // If domain is whitelisted/known legitimate and has NO path tampering and no brand impersonation, keep it Safe
                         val finalRiskScore = if ((isWhitelisted || urlAnalysis.isKnownLegitimate) && !brandCheck.isImpersonating && !hasCriticalPathTampering) {
                             minOf(parsed.riskScore, 10)
                         } else if (localResult.riskScore >= 65 && parsed.riskScore < 50) {
@@ -152,6 +187,7 @@ class PhishingDetectorEngine(
                             status = finalStatus,
                             riskScore = finalRiskScore,
                             detectedThreats = mergedThreats,
+                            engineTelemetry = telemetry,
                             contextText = trimmedContext,
                             scannedAt = System.currentTimeMillis()
                         )
@@ -161,7 +197,7 @@ class PhishingDetectorEngine(
                     }
                 }
             } catch (e: Exception) {
-                // If Gemini network call fails, seamlessly use high-precision local synthesis
+                // If Gemini network call fails, seamlessly return mathematically rigorous local synthesis
             }
         }
 
@@ -173,15 +209,17 @@ class PhishingDetectorEngine(
         url: String,
         contextText: String,
         urlAnalysis: UrlStructureAnalysisResult,
-        threatIntel: ThreatIntelResult,
+        mlResult: MlInferenceResult,
+        ragResult: RagRetrievalResult,
         nlpAnalysis: NlpAnalysisResult,
         brandCheck: BrandImpersonationResult,
+        threatIntel: ThreatIntelResult,
+        telemetry: EngineTelemetry,
         isWhitelisted: Boolean,
         whitelistBrand: String?
     ): PhishingAnalysisResult {
         val detectedThreats = mutableListOf<String>()
 
-        // Risk Scoring calculation (0 to 100)
         var score = 0
 
         val hasCriticalPathTampering = urlAnalysis.hasPathObfuscation ||
@@ -191,13 +229,21 @@ class PhishingDetectorEngine(
                 urlAnalysis.isIpAddress ||
                 urlAnalysis.isPunycode
 
-        // If domain is on whitelist or top legitimate authority, but has NO path tampering, no brand impersonation, no raw IP, no userinfo trick:
         if ((isWhitelisted || urlAnalysis.isKnownLegitimate) && !brandCheck.isImpersonating && !hasCriticalPathTampering) {
             score = 0
         } else {
             detectedThreats.addAll(urlAnalysis.detectedThreats)
             detectedThreats.addAll(threatIntel.threatSignatures)
-            threatIntel.matchedCampaigns.forEach { detectedThreats.add("Active Threat Campaign: $it") }
+
+            if (ragResult.matchedCampaignTitle != null && ragResult.highestSimilarity >= 0.25f) {
+                detectedThreats.add("RAG Vector Match: ${ragResult.matchedCampaignTitle} (${"%.1f".format(ragResult.highestSimilarity * 100)}% Cosine Sim)")
+            }
+
+            if (mlResult.isPhishing && mlResult.riskScore >= 60) {
+                val primarySig = mlResult.topContributors.firstOrNull { it.isRiskIndication }?.description
+                    ?: "Supervised ML classifier flagged high phishing probability (${"%.1f".format(mlResult.probability * 100)}%)"
+                detectedThreats.add("ML Model Flag: $primarySig")
+            }
 
             if (brandCheck.isImpersonating) {
                 detectedThreats.add("Brand Impersonation (${brandCheck.impersonatedBrand ?: "Target"} vs untrusted domain '${urlAnalysis.cleanHost}')")
@@ -213,15 +259,15 @@ class PhishingDetectorEngine(
             }
 
             if (urlAnalysis.hasPathObfuscation) {
-                score += 70 // Deceptive leetspeak substitution in URL path (e.g. l0gin vs login)
+                score += 70 // Deceptive leetspeak substitution in URL path
             }
 
             if (urlAnalysis.hasOpenRedirect) {
-                score += 65 // Open redirect vulnerability / bypass
+                score += 65 // Open redirect vulnerability
             }
 
             if (urlAnalysis.hasSuspiciousPayload) {
-                score += 75 // Direct malicious payload application in path
+                score += 75 // Direct malicious executable download
             }
 
             if (urlAnalysis.isIpAddress) {
@@ -230,10 +276,6 @@ class PhishingDetectorEngine(
 
             if (urlAnalysis.typoSquattedBrand != null) {
                 score += 55
-            }
-
-            if (threatIntel.matchedCampaigns.isNotEmpty()) {
-                score += 50
             }
 
             if (urlAnalysis.hasAtSymbolTrick) {
@@ -273,14 +315,18 @@ class PhishingDetectorEngine(
                 score += 20
             }
 
-            // 3. NLP Urgency & Pretext Factors (Only on untrusted domains)
-            if (nlpAnalysis.hasUrgency) {
-                score += (nlpAnalysis.urgencyScore * 0.40).toInt()
+            // 3. Supervised Machine Learning & RAG Fusion
+            val mlRiskComponent = (mlResult.probability * 35.0f).roundToInt()
+            score += mlRiskComponent
+
+            if (ragResult.highestSimilarity >= 0.30f) {
+                val ragComponent = (ragResult.highestSimilarity * 25.0f).roundToInt()
+                score += ragComponent
             }
 
-            // 4. Threat Intel Signatures
-            if (threatIntel.threatSignatures.isNotEmpty()) {
-                score += (threatIntel.threatSignatures.size * 10)
+            // 4. NLP Urgency & Pretext Factors (Only on untrusted domains)
+            if (nlpAnalysis.hasUrgency) {
+                score += (nlpAnalysis.urgencyScore * 0.30).toInt()
             }
         }
 
@@ -305,6 +351,8 @@ class PhishingDetectorEngine(
             score = score,
             brandCheck = brandCheck,
             urlAnalysis = urlAnalysis,
+            mlResult = mlResult,
+            ragResult = ragResult,
             nlpAnalysis = nlpAnalysis,
             isWhitelisted = isWhitelisted,
             whitelistBrand = whitelistBrand
@@ -317,6 +365,7 @@ class PhishingDetectorEngine(
             detectedThreats = detectedThreats.distinct(),
             analysisBreakdown = breakdown,
             userExplanation = userExplanation,
+            engineTelemetry = telemetry,
             scannedAt = System.currentTimeMillis(),
             contextText = contextText
         )
@@ -331,14 +380,13 @@ class PhishingDetectorEngine(
         fallback: PhishingAnalysisResult,
         originalUrl: String,
         originalContext: String,
-        isWhitelisted: Boolean,
-        whitelistStatusStr: String
+        whitelistStatusStr: String,
+        telemetry: EngineTelemetry
     ): PhishingAnalysisResult? {
         try {
             val cleanJson = cleanJsonOutput(rawText)
             val root = JSONObject(cleanJson)
 
-            // Extract risk score flexibly (supports "risk_score", "riskScore", "score" - int or string)
             val scoreRaw = root.opt("risk_score") ?: root.opt("riskScore") ?: root.opt("score") ?: fallback.riskScore
             val score = when (scoreRaw) {
                 is Number -> scoreRaw.toInt()
@@ -346,32 +394,33 @@ class PhishingDetectorEngine(
                 else -> fallback.riskScore
             }.coerceIn(0, 100)
 
-            // Extract status flexibly
             val statusRaw = root.optString("status", "").ifBlank {
-                root.optString("verdict", "")
+                root.optString("verdict", "").ifBlank {
+                    when {
+                        score >= 65 -> "Phishing"
+                        score >= 30 -> "Suspicious"
+                        else -> "Safe"
+                    }
+                }
             }
+
             val status = when {
-                statusRaw.contains("phish", ignoreCase = true) || score >= 65 -> "Phishing"
-                statusRaw.contains("susp", ignoreCase = true) || score >= 30 -> "Suspicious"
+                statusRaw.contains("phish", ignoreCase = true) -> "Phishing"
+                statusRaw.contains("susp", ignoreCase = true) -> "Suspicious"
                 else -> "Safe"
             }
 
-            // Extract detected threats flexibly
             val threatsList = mutableListOf<String>()
-            val threatsJsonArray = root.optJSONArray("detected_threats") 
-                ?: root.optJSONArray("detectedThreats") 
-                ?: root.optJSONArray("threats")
-
-            if (threatsJsonArray != null) {
-                for (i in 0 until threatsJsonArray.length()) {
-                    val item = threatsJsonArray.optString(i)
+            val threatsArray = root.optJSONArray("detected_threats") ?: root.optJSONArray("detectedThreats")
+            if (threatsArray != null) {
+                for (i in 0 until threatsArray.length()) {
+                    val item = threatsArray.optString(i)
                     if (item.isNotBlank()) threatsList.add(item)
                 }
             } else {
                 threatsList.addAll(fallback.detectedThreats)
             }
 
-            // Extract breakdown
             val breakdownObj = root.optJSONObject("analysis_breakdown") ?: root.optJSONObject("analysisBreakdown")
             val urlStructure = breakdownObj?.optString("url_structure") 
                 ?: breakdownObj?.optString("urlStructure") 
@@ -405,6 +454,7 @@ class PhishingDetectorEngine(
                     whitelistStatus = whitelistStatusStr
                 ),
                 userExplanation = userExplanation,
+                engineTelemetry = telemetry,
                 rawJson = cleanJson,
                 scannedAt = System.currentTimeMillis(),
                 contextText = originalContext
@@ -419,6 +469,8 @@ class PhishingDetectorEngine(
         score: Int,
         brandCheck: BrandImpersonationResult,
         urlAnalysis: UrlStructureAnalysisResult,
+        mlResult: MlInferenceResult,
+        ragResult: RagRetrievalResult,
         nlpAnalysis: NlpAnalysisResult,
         isWhitelisted: Boolean,
         whitelistBrand: String?
@@ -426,9 +478,9 @@ class PhishingDetectorEngine(
         return buildString {
             when (status) {
                 "Phishing" -> {
-                    append("DANGER: High-risk PHISHING threat detected (Risk Score: $score/100). ")
+                    append("DANGER: High-risk PHISHING threat detected (Risk Score: $score/100, ML Probability: ${(mlResult.probability * 100).toInt()}%). ")
                     if (urlAnalysis.hasPathObfuscation) {
-                        append("CRITICAL PATH DECEPTION: The URL path employs deceptive leetspeak/character substitution ('l0gin' spoofing 'login'). Legitimate banks and services NEVER use digit-substituted endpoint paths. ")
+                        append("CRITICAL PATH DECEPTION: The URL path employs deceptive leetspeak/character substitution ('l0gin' spoofing 'login'). Legitimate services NEVER use digit-substituted endpoint paths. ")
                     }
                     if (urlAnalysis.hasOpenRedirect) {
                         append("OPEN REDIRECT RISK: The URL contains an open redirect parameter pointing traffic to an external target. ")
@@ -437,16 +489,16 @@ class PhishingDetectorEngine(
                         append("DANGEROUS PAYLOAD: The URL targets a direct application or executable installer (.apk / .exe). ")
                     }
                     if (brandCheck.isImpersonating) {
-                        append("This site is actively impersonating ${brandCheck.impersonatedBrand}, while leading to an unauthorized domain ('${urlAnalysis.cleanHost}') instead of the official portal ('${brandCheck.legitimateDomain}'). ")
+                        append("This site is actively impersonating ${brandCheck.impersonatedBrand}, while leading to an unauthorized domain ('${urlAnalysis.cleanHost}') instead of official portal ('${brandCheck.legitimateDomain}'). ")
+                    }
+                    if (ragResult.matchedCampaignTitle != null && ragResult.highestSimilarity >= 0.25f) {
+                        append("Threat matched intelligence profile '${ragResult.matchedCampaignTitle}' (${(ragResult.highestSimilarity * 100).toInt()}% cosine similarity). ")
                     }
                     if (urlAnalysis.isIpAddress) {
                         append("The URL uses a raw numerical IP address (${urlAnalysis.cleanHost}) commonly used to evade domain reputation filters. ")
                     }
                     if (urlAnalysis.suspiciousTld != null) {
                         append("The domain utilizes an untrusted Top-Level Domain (.${urlAnalysis.suspiciousTld}) heavily associated with scam operations. ")
-                    }
-                    if (urlAnalysis.hasPhishingKeywords) {
-                        append("The domain contains deceptive security/authentication keywords. ")
                     }
                     if (nlpAnalysis.hasUrgency) {
                         append("The accompanying message employs artificial urgency and coercion tactics. ")
@@ -471,7 +523,7 @@ class PhishingDetectorEngine(
                     if (isWhitelisted) {
                         append("SAFE: The domain '${urlAnalysis.cleanHost}' is verified as an official entity (${whitelistBrand ?: "Verified Authority"}). Standard cybersecurity checks found no deceptive manipulation.")
                     } else {
-                        append("SAFE: Cybersecurity analysis found no deceptive patterns, brand mismatches, or malicious signatures for '${urlAnalysis.cleanHost}'.")
+                        append("SAFE: Multi-layer cybersecurity analysis (ML probability ${(mlResult.probability * 100).toInt()}%, 0 RAG threats) found no deceptive patterns, brand mismatches, or malicious signatures for '${urlAnalysis.cleanHost}'.")
                     }
                 }
             }
@@ -484,6 +536,9 @@ class PhishingDetectorEngine(
         cleanHost: String,
         isWhitelisted: Boolean,
         whitelistBrand: String?,
+        mlResult: MlInferenceResult,
+        ragResult: RagRetrievalResult,
+        nlpAnalysis: NlpAnalysisResult,
         localThreats: List<String>,
         localScore: Int
     ): String {
@@ -494,8 +549,24 @@ URL: $url
 Context/Text: $contextText
 Extracted Host Domain: $cleanHost
 SQL Whitelist Match: ${if (isWhitelisted) "Match Found ($whitelistBrand)" else "No Match"}
-Preliminary Heuristic Threat Signals: ${if (localThreats.isEmpty()) "None" else localThreats.joinToString("; ")}
-Preliminary Risk Assessment: $localScore / 100
+
+EXECUTED MACHINE LEARNING INFERENCE:
+- Model: Supervised Logistic Regression Classifier (24 features, L2 regularized)
+- Inferred Probability P(Phishing): ${"%.4f".format(mlResult.probability)} (${"%.1f".format(mlResult.probability * 100)}%)
+- Confidence Level: ${"%.1f".format(mlResult.confidencePercentage)}%
+- Top ML Contributing Features:
+${mlResult.topContributors.take(4).joinToString("\n") { "  * ${it.description}" }}
+
+RETRIEVAL-AUGMENTED INTELLIGENCE (RAG):
+${ragResult.ragContextForPrompt}
+
+NLP SEMANTIC & PSYCHOLOGICAL COERCION ANALYSIS:
+- Urgency Pressure Score: ${nlpAnalysis.urgencyScore} / 100
+- Imperative Command Ratio: ${"%.1f".format(nlpAnalysis.imperativeRatio * 100)}%
+- Detected Tactics: ${if (nlpAnalysis.pressureTactics.isEmpty()) "None" else nlpAnalysis.pressureTactics.joinToString("; ")}
+
+Preliminary Local Threat Signals: ${if (localThreats.isEmpty()) "None" else localThreats.joinToString("; ")}
+Composite Pre-Score: $localScore / 100
 
 ANALYSIS GUIDELINES:
 - Official websites with standard paths (e.g. sbi.bank.in, onlinesbi.sbi/retail/login, hdfcbank.com, google.com) are SAFE (Risk Score: 0-10).

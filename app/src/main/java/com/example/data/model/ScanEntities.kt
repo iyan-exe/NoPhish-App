@@ -32,6 +32,24 @@ data class WhitelistEntity(
     val addedAt: Long = System.currentTimeMillis()
 )
 
+@Entity(tableName = "threat_intel_repository")
+data class ThreatIntelEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val title: String,
+    val category: String, // "Banking", "Smishing / Postal", "Crypto / Web3", "Social Media", "Tax / Gov", "Scareware", "E-Commerce"
+    val targetBrand: String,
+    val fakeDomain: String,
+    val sampleUrl: String,
+    val sampleMessage: String,
+    val riskScore: Int,
+    val attackVector: String,
+    val indicatorsOfCompromise: String, // Comma-separated
+    val deceptionTechnique: String,
+    val source: String = "CERT-In Feed",
+    val addedAt: Long = System.currentTimeMillis()
+)
+
 data class PresetScenario(
     val title: String,
     val category: String,

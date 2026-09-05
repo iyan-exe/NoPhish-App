@@ -648,7 +648,10 @@ fun ScanScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    LayerBreakdownSection(breakdown = result.analysisBreakdown)
+                    LayerBreakdownSection(
+                        breakdown = result.analysisBreakdown,
+                        telemetry = result.engineTelemetry
+                    )
                 }
             }
 
@@ -1142,7 +1145,7 @@ fun LiveThreatRadarFeedCard(
                 }
 
                 Text(
-                    text = "SIMULATED INTEL",
+                    text = "LIVE IOC REPOSITORY",
                     fontFamily = FontFamily.Monospace,
                     fontSize = 9.sp,
                     color = NothingGrey

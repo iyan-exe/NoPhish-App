@@ -179,4 +179,58 @@ class ExampleRobolectricTest {
     val threatSignatures = ThreatIntelligenceService.evaluate("inddiapost-tracking.top", "update-address")
     assertTrue(threatSignatures.threatSignatures.isNotEmpty() || threatSignatures.matchedCampaigns.isNotEmpty())
   }
+
+  @Test
+  fun `test supervised url classifier predicts phishing accurately`() {
+    val phishingMl = com.example.domain.SupervisedUrlClassifier.predict("http://sbi-yono-kyc-update.xyz/login.php")
+    assertTrue(phishingMl.probability > 0.60f)
+    assertTrue(phishingMl.isPhishing)
+    assertTrue(phishingMl.topContributors.isNotEmpty())
+
+    val safeMl = com.example.domain.SupervisedUrlClassifier.predict("https://sbi.bank.in/portal/web/home")
+    assertTrue(safeMl.probability < 0.20f)
+    assertFalse(safeMl.isPhishing)
+  }
+
+  @Test
+  fun `test rag threat retriever computes cosine similarity on vector space model`() {
+    val ragResult = com.example.domain.RagThreatRetriever.retrieve("metamask restore secret seed recovery phrase")
+    assertTrue(ragResult.highestSimilarity > 0.20f)
+    assertNotNull(ragResult.matchedCampaignTitle)
+    assertTrue(ragResult.topMatches.isNotEmpty())
+  }
+
+  @Test
+  fun `test retail onlinesbi sbi with leetspeak l0gin is flagged as phishing not zero risk`() {
+    val urlWithTamperedPath = "https://retail.onlinesbi.sbi/retail/l0gin"
+    val analysis = UrlStructureAnalyzer.analyze(urlWithTamperedPath)
+    assertTrue(analysis.hasPathObfuscation)
+    assertTrue(analysis.detectedThreats.any { it.contains("l0gin", ignoreCase = true) || it.contains("leetspeak", ignoreCase = true) })
+
+    val db = com.example.data.local.PhishShieldDatabase.getDatabase(androidx.test.core.app.ApplicationProvider.getApplicationContext())
+    val engine = com.example.domain.PhishingDetectorEngine(db.whitelistDao())
+
+    kotlinx.coroutines.runBlocking {
+      val result = engine.analyze(urlWithTamperedPath, "")
+      assertTrue("Risk score should be high due to path deception, got: ${result.riskScore}", result.riskScore >= 65)
+      assertEquals("Phishing", result.status)
+      assertTrue(result.detectedThreats.isNotEmpty())
+    }
+  }
+
+  @Test
+  fun `test official retail onlinesbi sbi login htm is verified safe`() {
+    val officialUrl = "https://retail.onlinesbi.sbi/retail/login.htm"
+    val analysis = UrlStructureAnalyzer.analyze(officialUrl)
+    assertFalse(analysis.hasPathObfuscation)
+
+    val db = com.example.data.local.PhishShieldDatabase.getDatabase(androidx.test.core.app.ApplicationProvider.getApplicationContext())
+    val engine = com.example.domain.PhishingDetectorEngine(db.whitelistDao())
+
+    kotlinx.coroutines.runBlocking {
+      val result = engine.analyze(officialUrl, "")
+      assertTrue("Risk score for official portal should be <= 10, got: ${result.riskScore}", result.riskScore <= 10)
+      assertEquals("Safe", result.status)
+    }
+  }
 }

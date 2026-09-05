@@ -6,19 +6,22 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.data.model.ScanHistoryEntity
+import com.example.data.model.ThreatDatabase
+import com.example.data.model.ThreatIntelEntity
 import com.example.data.model.WhitelistEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [ScanHistoryEntity::class, WhitelistEntity::class],
-    version = 1,
+    entities = [ScanHistoryEntity::class, WhitelistEntity::class, ThreatIntelEntity::class],
+    version = 2,
     exportSchema = false
 )
 abstract class PhishShieldDatabase : RoomDatabase() {
     abstract fun scanHistoryDao(): ScanHistoryDao
     abstract fun whitelistDao(): WhitelistDao
+    abstract fun threatIntelDao(): ThreatIntelDao
 
     companion object {
         @Volatile
@@ -30,16 +33,49 @@ abstract class PhishShieldDatabase : RoomDatabase() {
                     context.applicationContext,
                     PhishShieldDatabase::class.java,
                     "phish_shield_db"
-                ).addCallback(object : Callback() {
+                ).fallbackToDestructiveMigration(true)
+                .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
                         CoroutineScope(Dispatchers.IO).launch {
                             INSTANCE?.whitelistDao()?.insertAll(defaultWhitelist)
+                            INSTANCE?.threatIntelDao()?.insertAll(defaultThreats)
+                        }
+                    }
+                    override fun onOpen(db: SupportSQLiteDatabase) {
+                        super.onOpen(db)
+                        CoroutineScope(Dispatchers.IO).launch {
+                            val count = INSTANCE?.threatIntelDao()?.getCount() ?: 0
+                            if (count == 0) {
+                                INSTANCE?.threatIntelDao()?.insertAll(defaultThreats)
+                            }
+                            val wlCount = INSTANCE?.whitelistDao()?.getCount() ?: 0
+                            if (wlCount == 0) {
+                                INSTANCE?.whitelistDao()?.insertAll(defaultWhitelist)
+                            }
                         }
                     }
                 }).build()
                 INSTANCE = instance
                 instance
+            }
+        }
+
+        val defaultThreats: List<ThreatIntelEntity> by lazy {
+            ThreatDatabase.KNOWN_FAKE_WEBSITES.map { threat ->
+                ThreatIntelEntity(
+                    title = threat.title,
+                    category = threat.category,
+                    targetBrand = threat.targetBrand,
+                    fakeDomain = threat.fakeDomain,
+                    sampleUrl = threat.sampleUrl,
+                    sampleMessage = threat.sampleMessage,
+                    riskScore = threat.riskScore,
+                    attackVector = threat.attackVector,
+                    indicatorsOfCompromise = threat.indicatorsOfCompromise.joinToString("; "),
+                    deceptionTechnique = threat.deceptionTechnique,
+                    source = "CERT-In / PhishTank Feed"
+                )
             }
         }
 

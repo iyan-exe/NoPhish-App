@@ -144,7 +144,7 @@ fun ThreatIntelScreen(
                     )
                 }
                 Text(
-                    text = "${ThreatDatabase.KNOWN_FAKE_WEBSITES.size} FAKE SITES • ${whitelist.size} VERIFIED REPOSITORIES",
+                    text = "${knownThreats.size} THREAT IOC SIGNATURES • ${whitelist.size} VERIFIED REPOSITORIES",
                     fontFamily = FontFamily.Monospace,
                     fontSize = 10.sp,
                     color = NothingGrey,

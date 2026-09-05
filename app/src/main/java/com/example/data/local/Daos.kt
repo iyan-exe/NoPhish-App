@@ -52,3 +52,28 @@ interface WhitelistDao {
     @Query("DELETE FROM whitelist_domains WHERE id = :id")
     suspend fun deleteById(id: Long)
 }
+
+@Dao
+interface ThreatIntelDao {
+    @Query("SELECT * FROM threat_intel_repository ORDER BY addedAt DESC")
+    fun getAllThreats(): Flow<List<com.example.data.model.ThreatIntelEntity>>
+
+    @Query("SELECT * FROM threat_intel_repository WHERE title LIKE '%' || :query || '%' OR indicatorsOfCompromise LIKE '%' || :query || '%' OR targetBrand LIKE '%' || :query || '%' OR fakeDomain LIKE '%' || :query || '%'")
+    fun searchThreats(query: String): Flow<List<com.example.data.model.ThreatIntelEntity>>
+
+    @Query("SELECT * FROM threat_intel_repository WHERE category = :category ORDER BY addedAt DESC")
+    fun getByCategory(category: String): Flow<List<com.example.data.model.ThreatIntelEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(threat: com.example.data.model.ThreatIntelEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(threats: List<com.example.data.model.ThreatIntelEntity>)
+
+    @Query("DELETE FROM threat_intel_repository WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Query("SELECT COUNT(*) FROM threat_intel_repository")
+    suspend fun getCount(): Int
+}
+
