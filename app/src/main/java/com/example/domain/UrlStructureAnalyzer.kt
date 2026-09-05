@@ -116,9 +116,10 @@ object UrlStructureAnalyzer {
                 threats.add("Deceptive '@' userinfo credential redirection trick")
             }
 
-            // 2. IP Address check
+            // 2. IP Address check (IPv4 and IPv6 literal)
             val ipRegex = Regex("""^(\d{1,3}\.){3}\d{1,3}$""")
-            if (ipRegex.matches(host)) {
+            val isIpv6 = host.startsWith("[") && host.endsWith("]")
+            if (ipRegex.matches(host) || isIpv6) {
                 isIp = true
                 threats.add("Raw numerical IP address host ($host) instead of legitimate domain")
             }

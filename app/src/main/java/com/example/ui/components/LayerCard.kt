@@ -73,7 +73,8 @@ fun LayerBreakdownSection(
         val mlStatusColor = if (telemetry.mlProbability >= 0.65f) StatusPhishing else if (telemetry.mlProbability >= 0.35f) StatusSuspicious else StatusSafe
 
         val mlDetailBuilder = StringBuilder()
-        mlDetailBuilder.append("Model: Supervised Logistic Classifier (24 features, L2 regularized)\n")
+        val versionTag = if (telemetry.modelVersion.isNotBlank()) " [${telemetry.modelVersion}]" else ""
+        mlDetailBuilder.append("Model: Supervised Logistic Classifier$versionTag (24 features, L2 regularized)\n")
         mlDetailBuilder.append("• Phishing Probability: ${"%.2f".format(telemetry.mlProbability * 100)}%\n")
         mlDetailBuilder.append("• Statistical Confidence: ${"%.1f".format(telemetry.mlConfidence)}%\n")
         if (telemetry.mlTopContributors.isNotEmpty()) {

@@ -76,7 +76,8 @@ class PhishingDetectorEngine(
             nlpImperativeRatio = nlpAnalysis.imperativeRatio,
             nlpTactics = nlpAnalysis.pressureTactics,
             shannonEntropy = mlResult.features.vector[18],
-            urlLength = trimmedUrl.length
+            urlLength = trimmedUrl.length,
+            modelVersion = mlResult.modelVersion
         )
 
         // Baseline local synthesis
@@ -106,7 +107,9 @@ class PhishingDetectorEngine(
                 val prompt = buildGeminiPrompt(
                     url = trimmedUrl,
                     contextText = trimmedContext,
-                    cleanHost = urlAnalysis.cleanHost,
+                    urlAnalysis = urlAnalysis,
+                    brandCheck = brandCheck,
+                    threatIntel = threatIntel,
                     isWhitelisted = isWhitelisted,
                     whitelistBrand = verifiedBrandName,
                     mlResult = mlResult,
@@ -130,7 +133,7 @@ class PhishingDetectorEngine(
                     systemInstruction = GeminiContent(
                         parts = listOf(
                             GeminiPart(
-                                text = "You are an elite Cybersecurity Threat Intelligence & Phishing URL Classifier. Evaluate the target URL, RAG threat intelligence, and ML vector metrics. Distinguish between genuine established domains (Safe 0-10%) and actual phishing attempts (Phishing 70-100%). Respond ONLY in valid JSON conforming to the requested schema."
+                                text = "You are an elite Cybersecurity Threat Intelligence & Phishing URL Classifier. Strictly evaluate the target URL, RAG threat intelligence, NLP urgency metrics, and ML vector features using ONLY the supplied technical evidence. Do NOT invent or assume external events. If evidence is insufficient, say so. Local deterministic threat detections (brand impersonation, path leetspeak tampering, open redirects, executable downloads) represent ground truth and must never be downgraded. Respond ONLY in valid JSON matching the requested schema."
                             )
                         )
                     )
@@ -162,12 +165,29 @@ class PhishingDetectorEngine(
                                 urlAnalysis.isIpAddress ||
                                 urlAnalysis.isPunycode
 
-                        val finalRiskScore = if ((isWhitelisted || urlAnalysis.isKnownLegitimate) && !brandCheck.isImpersonating && !hasCriticalPathTampering) {
-                            minOf(parsed.riskScore, 10)
-                        } else if (localResult.riskScore >= 65 && parsed.riskScore < 50) {
-                            localResult.riskScore
-                        } else {
-                            maxOf(parsed.riskScore, localResult.riskScore)
+                        val isDeterministicThreat = brandCheck.isImpersonating ||
+                                hasCriticalPathTampering ||
+                                (mlResult.isPhishing && mlResult.probability >= 0.85f) ||
+                                threatIntel.reputationScore <= 20 ||
+                                (ragResult.highestSimilarity >= 0.35f && ragResult.topMatches.firstOrNull()?.document?.severity == "CRITICAL")
+
+                        val finalRiskScore = when {
+                            // 1. Whitelisted domain with path tampering or brand spoofing is NEVER safe
+                            hasCriticalPathTampering || brandCheck.isImpersonating -> {
+                                maxOf(parsed.riskScore, localResult.riskScore, 70)
+                            }
+                            // 2. Verified legitimate / whitelisted domain with clean path is safe
+                            (isWhitelisted || urlAnalysis.isKnownLegitimate) && !isDeterministicThreat -> {
+                                minOf(parsed.riskScore, 10)
+                            }
+                            // 3. Local engine detected a deterministic threat: Gemini reasoning CANNOT downgrade below local threat score
+                            isDeterministicThreat -> {
+                                maxOf(parsed.riskScore, localResult.riskScore, 65)
+                            }
+                            // 4. Standard fusion
+                            else -> {
+                                maxOf(parsed.riskScore, localResult.riskScore)
+                            }
                         }
 
                         val finalStatus = when {
@@ -182,11 +202,18 @@ class PhishingDetectorEngine(
                             (parsed.detectedThreats + localResult.detectedThreats).distinct()
                         }
 
+                        val userExplanationWithOverride = if (isDeterministicThreat && parsed.riskScore < 50) {
+                            "${parsed.userExplanation} [Deterministic Security Override Enforced: Verified local threat indicators (e.g. brand spoofing, path tampering, or ML signature) took precedence over model reasoning.]"
+                        } else {
+                            parsed.userExplanation
+                        }
+
                         val finalResult = parsed.copy(
                             url = trimmedUrl,
                             status = finalStatus,
                             riskScore = finalRiskScore,
                             detectedThreats = mergedThreats,
+                            userExplanation = userExplanationWithOverride,
                             engineTelemetry = telemetry,
                             contextText = trimmedContext,
                             scannedAt = System.currentTimeMillis()
@@ -533,7 +560,9 @@ class PhishingDetectorEngine(
     private fun buildGeminiPrompt(
         url: String,
         contextText: String,
-        cleanHost: String,
+        urlAnalysis: UrlStructureAnalysisResult,
+        brandCheck: BrandImpersonationResult,
+        threatIntel: ThreatIntelResult,
         isWhitelisted: Boolean,
         whitelistBrand: String?,
         mlResult: MlInferenceResult,
@@ -545,34 +574,60 @@ class PhishingDetectorEngine(
         return """
 Evaluate the following URL and message context for phishing, scam, and brand impersonation threats:
 
-URL: $url
-Context/Text: $contextText
-Extracted Host Domain: $cleanHost
-SQL Whitelist Match: ${if (isWhitelisted) "Match Found ($whitelistBrand)" else "No Match"}
+TARGET URL DETAILS:
+- Full URL: $url
+- Scheme: ${urlAnalysis.scheme}
+- Clean Host: ${urlAnalysis.cleanHost}
+- Root Domain: ${urlAnalysis.rootDomain}
+- Path: ${urlAnalysis.path}
+- Query: ${urlAnalysis.query}
+- Raw IP Host: ${urlAnalysis.isIpAddress}
+- Suspicious TLD: ${urlAnalysis.suspiciousTld ?: "None"}
+- Hyphen Count: ${urlAnalysis.hasHyphenStuffing}
+- URL Shortener: ${urlAnalysis.isShortener}
+- High Shannon Entropy: ${urlAnalysis.highEntropy}
+- Punycode/IDN: ${urlAnalysis.isPunycode}
+- Path Leetspeak Obfuscation: ${urlAnalysis.hasPathObfuscation}
+- Open Redirect Parameter: ${urlAnalysis.hasOpenRedirect}
+- Executable Download (.apk/.exe): ${urlAnalysis.hasSuspiciousPayload}
+
+WHITELIST & BRAND IMPERSONATION RADAR:
+- Whitelist Database Match: ${if (isWhitelisted) "Match Found ($whitelistBrand)" else "No Match"}
+- Brand Impersonation Detected: ${brandCheck.isImpersonating}
+${if (brandCheck.isImpersonating) "- Impersonated Brand: ${brandCheck.impersonatedBrand} (Official Domain: ${brandCheck.legitimateDomain}, Severity: ${brandCheck.mismatchSeverity})" else "- No brand spoofing detected."}
+
+LOCAL THREAT INTELLIGENCE:
+- Reputation Score: ${threatIntel.reputationScore} / 100
+- Matched Campaigns: ${if (threatIntel.matchedCampaigns.isEmpty()) "None" else threatIntel.matchedCampaigns.joinToString("; ")}
+- Signatures: ${if (threatIntel.threatSignatures.isEmpty()) "None" else threatIntel.threatSignatures.joinToString("; ")}
 
 EXECUTED MACHINE LEARNING INFERENCE:
-- Model: Supervised Logistic Regression Classifier (24 features, L2 regularized)
+- Model: Supervised Logistic Regression Classifier (24 features, L2 regularized, version ${mlResult.modelVersion})
 - Inferred Probability P(Phishing): ${"%.4f".format(mlResult.probability)} (${"%.1f".format(mlResult.probability * 100)}%)
 - Confidence Level: ${"%.1f".format(mlResult.confidencePercentage)}%
 - Top ML Contributing Features:
-${mlResult.topContributors.take(4).joinToString("\n") { "  * ${it.description}" }}
+${mlResult.topContributors.take(5).joinToString("\n") { "  * ${it.description} (Contribution: ${"%.3f".format(it.contribution)}, Raw Value: ${"%.2f".format(it.rawValue)})" }}
 
 RETRIEVAL-AUGMENTED INTELLIGENCE (RAG):
 ${ragResult.ragContextForPrompt}
 
 NLP SEMANTIC & PSYCHOLOGICAL COERCION ANALYSIS:
+- Message Context: ${if (contextText.isBlank()) "None provided" else contextText}
 - Urgency Pressure Score: ${nlpAnalysis.urgencyScore} / 100
 - Imperative Command Ratio: ${"%.1f".format(nlpAnalysis.imperativeRatio * 100)}%
-- Detected Tactics: ${if (nlpAnalysis.pressureTactics.isEmpty()) "None" else nlpAnalysis.pressureTactics.joinToString("; ")}
+- Pressure Tactics: ${if (nlpAnalysis.pressureTactics.isEmpty()) "None" else nlpAnalysis.pressureTactics.joinToString("; ")}
+- Obfuscation / Zero-width / Homoglyphs: ${nlpAnalysis.hasObfuscation}
 
-Preliminary Local Threat Signals: ${if (localThreats.isEmpty()) "None" else localThreats.joinToString("; ")}
-Composite Pre-Score: $localScore / 100
+PRELIMINARY LOCAL DETERMINISTIC THREAT SIGNALS:
+- Detected Threats: ${if (localThreats.isEmpty()) "None" else localThreats.joinToString("; ")}
+- Composite Local Score: $localScore / 100
 
-ANALYSIS GUIDELINES:
-- Official websites with standard paths (e.g. sbi.bank.in, onlinesbi.sbi/retail/login, hdfcbank.com, google.com) are SAFE (Risk Score: 0-10).
-- CRITICAL PATH ANOMALY: If a URL on ANY domain (even official/whitelisted ones) contains leetspeak/character substitution in the path (e.g. /l0gin with zero, /s1gnin with one, /ver1fy, /p4ssword), or open redirect parameters (e.g. ?url=http://...), this is DECEPTIVE/SPOOFED. Classify as PHISHING or SUSPICIOUS (Risk Score: 70-100).
-- If an untrusted third-party host attempts to impersonate a bank or brand (e.g. sbi-kyc-update.xyz, hdfc-netbanking.club, inddiapost.top, secure-appleid.com, 192.168.1.1/chase), it is PHISHING (Risk Score: 75-100).
-- If the domain is officially verified and has NO path tampering, status is "Safe" (risk_score 0-10).
+MANDATORY EVIDENCE CONSTRAINTS:
+1. Reason strictly from the supplied technical evidence above. Do NOT invent external breach reports, news, or unverified claims.
+2. If evidence is insufficient or inconclusive, explicitly state that in the user_explanation.
+3. Whitelisted domains are NEVER safe if path tampering (e.g., /l0gin, open redirect, .apk payload) is present.
+4. If an untrusted domain impersonates a brand (e.g. sbi-kyc-update.xyz, hdfc-netbanking.buzz), classify as PHISHING (risk_score 75-100).
+5. If the URL is a verified institutional portal without path tampering, classify as Safe (risk_score 0-10).
 
 Return the analysis STRICTLY as JSON with these exact keys:
 {

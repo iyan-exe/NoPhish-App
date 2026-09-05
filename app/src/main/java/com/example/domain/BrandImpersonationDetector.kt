@@ -455,22 +455,31 @@ object BrandImpersonationDetector {
                 }
             }
 
-            // Check if context text explicitly references this brand
+            // Check if context text or raw URL path explicitly references this brand
             val contextMentionsBrand = brand.keywords.any { keyword ->
                 containsWordOrPhrase(contextLower, keyword)
             }
+            val pathMentionsBrand = if (rawUrl.isNotEmpty()) {
+                val pathAndQuery = rawUrl.substringAfter(cleanHost, "").lowercase()
+                brand.keywords.any { keyword ->
+                    val cleanKw = keyword.lowercase().replace(" ", "")
+                    if (cleanKw.length >= 4) {
+                        pathAndQuery.contains(cleanKw)
+                    } else false
+                }
+            } else false
 
-            // If an untrusted domain claims or mimics this brand
-            if (domainMimicsBrand || (contextMentionsBrand && !isOfficialHost)) {
+            // If an untrusted domain claims or mimics this brand in domain or path
+            if (domainMimicsBrand || ((contextMentionsBrand || pathMentionsBrand) && !isOfficialHost)) {
                 val primaryOfficial = brand.officialDomains.first()
-                val severity = if (domainMimicsBrand && contextMentionsBrand) "Critical" else "High"
+                val severity = if (domainMimicsBrand || pathMentionsBrand) "Critical" else "High"
 
                 return BrandImpersonationResult(
                     isImpersonating = true,
                     impersonatedBrand = brand.name,
                     legitimateDomain = primaryOfficial,
                     mismatchSeverity = severity,
-                    explanation = "Brand '${brand.name}' is referenced, but the destination domain '$cleanHost' is NOT the official portal ('$primaryOfficial'). This is a severe brand mismatch and phishing indicator."
+                    explanation = "Brand '${brand.name}' is referenced in the domain or path, but destination host '$cleanHost' is NOT the official portal ('$primaryOfficial'). This is a severe brand spoofing indicator."
                 )
             }
         }

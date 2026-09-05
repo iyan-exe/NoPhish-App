@@ -153,6 +153,94 @@ object RagThreatRetriever {
             attackVector = "None. Official sovereign regulatory registry.",
             severity = "SAFE",
             recommendedAction = "Legitimate government agency domain."
+        ),
+        ThreatDocument(
+            id = "CORPUS-010",
+            title = "Microsoft 365 & Entra ID Device Code SSO Phishing",
+            category = "Enterprise Identity",
+            targetBrand = "Microsoft",
+            content = "Microsoft 365 Office 365 Outlook OneDrive Teams Entra ID login credentials session expired device code password reset tenant admin verify",
+            indicatorsOfCompromise = listOf("login.microsoftonline.com.account-protection.live", "office365-verify.com", "msft-portal-auth.xyz"),
+            attackVector = "Reverse proxy / adversary-in-the-middle (AiTM) harvesting session tokens and bypassing standard MFA",
+            severity = "CRITICAL",
+            recommendedAction = "Verify exact domain is login.microsoftonline.com or microsoft.com before submitting SSO credentials."
+        ),
+        ThreatDocument(
+            id = "CORPUS-011",
+            title = "Google Account Security Alert & Credential Harvester",
+            category = "Cloud & Identity",
+            targetBrand = "Google",
+            content = "Google Account Gmail critical security alert unauthorized sign-in attempt recover account verify password google storage full drive",
+            indicatorsOfCompromise = listOf("accounts-google-verify.click", "myaccount-google-security.top", "google-drive-shared-doc.buzz"),
+            attackVector = "Fabricated email alert claiming security compromise linking to a lookalike Google login screen",
+            severity = "CRITICAL",
+            recommendedAction = "Inspect security notices only in Google Account Settings at https://myaccount.google.com directly."
+        ),
+        ThreatDocument(
+            id = "CORPUS-012",
+            title = "Apple ID & iCloud Stolen Device Lock Phishing",
+            category = "Mobile Ecosystem",
+            targetBrand = "Apple",
+            content = "Apple ID iCloud Find My iPhone device located locked lost mode verify passcode apple id credentials tracking map location",
+            indicatorsOfCompromise = listOf("icloud-findmy-support.me", "appleid-verify-locked.info", "findmy-device-alert.top"),
+            attackVector = "Phishing SMS sent after device theft claiming lost phone was found, prompting Apple ID password to remove Activation Lock",
+            severity = "CRITICAL",
+            recommendedAction = "Access Find My exclusively via https://icloud.com/find. Apple never sends SMS links to unlock devices."
+        ),
+        ThreatDocument(
+            id = "CORPUS-013",
+            title = "Income Tax Department Direct Refund Transfer Lure",
+            category = "Tax & Government",
+            targetBrand = "Income Tax Department / IRS",
+            content = "Income Tax refund approved approved amount ₹15400 direct bank transfer claim tax rebate pan card bank details irs tax stimulus",
+            indicatorsOfCompromise = listOf("incometax-refund-claim.click", "itr-refund-status.buzz", "tax-stimulus-direct.top"),
+            attackVector = "Smishing claiming approved tax refund with direct deposit link stealing netbanking credentials and debit card details",
+            severity = "HIGH",
+            recommendedAction = "Check refund status only on official https://eportal.incometax.gov.in or https://irs.gov."
+        ),
+        ThreatDocument(
+            id = "CORPUS-014",
+            title = "Telegram / WhatsApp Part-Time Task Investment Scam",
+            category = "Investment & Employment",
+            targetBrand = "Telegram / WhatsApp Task Scam",
+            content = "Part-time job online earn money daily ₹3000 YouTube video like Google maps review Telegram task group investment recharge crypto deposit bonus",
+            indicatorsOfCompromise = listOf("task-vip-earning.xyz", "youtube-review-job.top", "telegram-task-recharge.live"),
+            attackVector = "Recruitment message offering small payouts for rating apps/videos before demanding large crypto/UPI deposits into fake investment wallets",
+            severity = "HIGH",
+            recommendedAction = "Never send advance fees or cryptocurrency for online review/rating jobs. Legitimate companies never operate investment task schemes."
+        ),
+        ThreatDocument(
+            id = "CORPUS-015",
+            title = "Malicious URL Shortener & Open Redirect Chain",
+            category = "Evasion Technique",
+            targetBrand = "Generic Redirection / Shortener",
+            content = "URL shortener tinyurl bit.ly is.gd redirect hop evasion cloaking credential harvester hidden destination payload bypass inspection",
+            indicatorsOfCompromise = listOf("tinyurl.com", "bit.ly", "is.gd", "cutt.ly", "rb.gy"),
+            attackVector = "Shortened URL masking destination landing domain to bypass static scanner URL reputation checks",
+            severity = "MEDIUM",
+            recommendedAction = "Expand short URLs with a safe previewer before visiting to inspect ultimate destination domain."
+        ),
+        ThreatDocument(
+            id = "CORPUS-016",
+            title = "QR Code Phishing (Quishing) Terminal Redirection",
+            category = "Physical-to-Digital Phishing",
+            targetBrand = "Quishing Vector",
+            content = "QR code quishing scan QR payment parking meter table restaurant auth session physical sticker credential harvester offline attack",
+            indicatorsOfCompromise = listOf("qr-scan-authenticate.live", "parking-pay-qr.cfd", "quick-qr-claim.top"),
+            attackVector = "Malicious QR stickers pasted over legitimate parking or payment terminals redirecting scanners to phishing payment gates",
+            severity = "HIGH",
+            recommendedAction = "Always preview the destination domain displayed by the QR scanner before opening the browser."
+        ),
+        ThreatDocument(
+            id = "CORPUS-017",
+            title = "Windows Defender & Tech Support Scareware Alert",
+            category = "Scareware / Tech Support",
+            targetBrand = "Microsoft Defender",
+            content = "Windows Defender alert trojan virus detected computer locked call toll free support technician 1800 helpline screen locker remote access",
+            indicatorsOfCompromise = listOf("defender-alert-error0x8024.top", "windows-helpline-support.click", "apple-security-error.xyz"),
+            attackVector = "Browser pop-up freezing full-screen with fake virus alerts and siren sounds to prompt calling a fake call-center helpline",
+            severity = "HIGH",
+            recommendedAction = "Close browser window or restart device. Legitimate antivirus software never displays phone numbers to call for virus removal."
         )
     )
 
@@ -165,7 +253,7 @@ object RagThreatRetriever {
         // Build vocabulary from corpus
         val termDocCounts = mutableMapOf<String, Int>()
         val tokenizedDocs = THREAT_CORPUS.map { doc ->
-            val text = "${doc.title} ${doc.targetBrand} ${doc.category} ${doc.content} ${doc.indicatorsOfCompromise.joinToString(" ")}"
+            val text = "${doc.title} ${doc.targetBrand} ${doc.category} ${doc.content} ${doc.attackVector} ${doc.indicatorsOfCompromise.joinToString(" ")}"
             tokenize(text)
         }
 
@@ -253,7 +341,7 @@ object RagThreatRetriever {
             val similarity = cosineSimilarity(queryVector, docVector)
 
             // Identify matched terms between query and document
-            val docTokens = tokenize("${doc.title} ${doc.content}").toSet()
+            val docTokens = tokenize("${doc.title} ${doc.targetBrand} ${doc.content} ${doc.indicatorsOfCompromise.joinToString(" ")}").toSet()
             val matchedTerms = queryTokens.filter { docTokens.contains(it) }.distinct()
 
             if (similarity > 0.05f || matchedTerms.isNotEmpty()) {

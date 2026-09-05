@@ -233,4 +233,131 @@ class ExampleRobolectricTest {
       assertEquals("Safe", result.status)
     }
   }
+
+  @Test
+  fun `test evaluation on 20 unseen phishing and 20 unseen legitimate URLs`() {
+    val unseenLegit = listOf(
+      "https://www.bloomberg.com/markets",
+      "https://www.theguardian.com/international",
+      "https://www.nature.com/articles/nature",
+      "https://www.nih.gov/health-information",
+      "https://stackoverflow.blog/2024/01/ai-trends/",
+      "https://slack.engineering/architecture-at-scale/",
+      "https://aws.amazon.com/ec2/pricing/",
+      "https://azure.microsoft.com/en-us/solutions/",
+      "https://www.costco.com/warehouse-locations",
+      "https://www.ikea.com/us/en/cat/furniture-fu001/",
+      "https://www.bestbuy.com/site/electronics/audio",
+      "https://www.espn.com/nba/story",
+      "https://www.nationalgeographic.com/environment",
+      "https://www.coursera.org/browse/data-science",
+      "https://www.udemy.com/topic/python/",
+      "https://www.atlassian.com/software/jira",
+      "https://www.oracle.com/database/technologies/",
+      "https://www.salesforce.com/products/what-is-salesforce/",
+      "https://www.fidelity.com/trading/overview",
+      "https://www.schwab.com/brokerage"
+    )
+
+    val unseenPhish = listOf(
+      "http://chase-bank-verify-device-alert.top/signin",
+      "http://citibank-card-fraud-freeze.buzz/auth.php",
+      "http://appleid-security-unlock-device.work/login",
+      "http://microsoft-onedrive-expired-file.icu/view",
+      "http://netflix-reactivate-subscription-hold.cfd/update",
+      "http://amazon-prime-unusual-activity-hold.top/verify",
+      "http://paypal-resolution-center-case99.xyz/confirm",
+      "http://binance-kyc-compliance-check.live/wallet",
+      "http://coinbase-fraud-protection-case.click/auth",
+      "http://198.51.100.45/secure/bankofamerica/login.html",
+      "http://203.0.113.19:8080/portal/secure-login.php",
+      "http://dhl-express-redelivery-tax.top/parcel",
+      "http://fedex-clearance-invoice-payment.buzz/shipment",
+      "http://ups-customs-duty-unpaid.icu/tracking",
+      "http://usps-address-confirm-reschedule.click/fee",
+      "http://sbi-card-statement-unpaid-charges.shop/pay",
+      "http://hdfc-bank-bonus-reward-points.site/redeem",
+      "http://icici-direct-instant-loan-approval.online/kyc",
+      "http://metamask-security-audit-airdrop.surf/connect",
+      "http://phantom-solana-drainer-claim.live/auth"
+    )
+
+    var tp = 0
+    var fn = 0
+    var tn = 0
+    var fp = 0
+
+    println("=== EVALUATING UNSEEN PHISHING URLS ===")
+    for (url in unseenPhish) {
+      val res = com.example.domain.SupervisedUrlClassifier.predict(url)
+      println("PHISH: p=${"%.4f".format(res.probability)} isPhish=${res.isPhishing} url=$url")
+      if (res.isPhishing) {
+        tp++
+      } else {
+        fn++
+      }
+    }
+
+    println("=== EVALUATING UNSEEN LEGITIMATE URLS ===")
+    for (url in unseenLegit) {
+      val res = com.example.domain.SupervisedUrlClassifier.predict(url)
+      println("LEGIT: p=${"%.4f".format(res.probability)} isPhish=${res.isPhishing} url=$url")
+      if (!res.isPhishing) {
+        tn++
+      } else {
+        fp++
+      }
+    }
+
+    println("=== EVALUATION SUMMARY ===")
+    println("Total Phishing: ${unseenPhish.size}, Detected: $tp, Missed (FN): $fn")
+    println("Total Legit: ${unseenLegit.size}, Correct (TN): $tn, False Alarms (FP): $fp")
+    val pdr = tp.toDouble() / unseenPhish.size.toDouble() * 100.0
+    val ldr = tn.toDouble() / unseenLegit.size.toDouble() * 100.0
+    println("Phishing Detection Rate: $pdr%")
+    println("Legitimate Detection Rate: $ldr%")
+    println("False Positives: $fp")
+    println("False Negatives: $fn")
+  }
+
+  @Test
+  fun `test kotlin inference parameters exactly match exported trained_model_json artifact`() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val jsonString = try {
+      context.assets.open("trained_model.json").bufferedReader().use { it.readText() }
+    } catch (e: Exception) {
+      val file = java.io.File("trained_model.json")
+      if (file.exists()) file.readText() else java.io.File("../trained_model.json").readText()
+    }
+
+    val json = org.json.JSONObject(jsonString)
+    val version = json.getString("model_version")
+    val checksum = json.getString("model_checksum")
+    val bias = json.getDouble("bias").toFloat()
+    val weightsArray = json.getJSONArray("weights")
+    val meansArray = json.getJSONArray("means")
+    val stdsArray = json.getJSONArray("stds")
+
+    assertEquals("Model version must match exactly", version, com.example.domain.SupervisedUrlClassifier.MODEL_VERSION)
+    assertEquals("Model checksum must match exactly", checksum, com.example.domain.SupervisedUrlClassifier.MODEL_CHECKSUM)
+    assertEquals("Bias must match within 1e-5 tolerance", bias, com.example.domain.SupervisedUrlClassifier.BIAS, 1e-5f)
+
+    assertEquals("Weights dimension must be 24", 24, weightsArray.length())
+    assertEquals("Means dimension must be 24", 24, meansArray.length())
+    assertEquals("Stds dimension must be 24", 24, stdsArray.length())
+
+    for (i in 0 until 24) {
+      val expectedWeight = weightsArray.getDouble(i).toFloat()
+      val actualWeight = com.example.domain.SupervisedUrlClassifier.WEIGHTS[i]
+      assertEquals("Weight index $i must match", expectedWeight, actualWeight, 1e-5f)
+
+      val expectedMean = meansArray.getDouble(i).toFloat()
+      val actualMean = com.example.domain.SupervisedUrlClassifier.FEATURE_MEANS[i]
+      assertEquals("Mean index $i must match", expectedMean, actualMean, 1e-5f)
+
+      val expectedStd = stdsArray.getDouble(i).toFloat()
+      val actualStd = com.example.domain.SupervisedUrlClassifier.FEATURE_STDS[i]
+      assertEquals("Std index $i must match", expectedStd, actualStd, 1e-5f)
+    }
+  }
 }

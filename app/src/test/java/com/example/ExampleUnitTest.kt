@@ -4,6 +4,8 @@ import com.example.data.model.ThreatDatabase
 import com.example.domain.BrandImpersonationDetector
 import com.example.domain.DomainUtils
 import com.example.domain.NlpSemanticAnalyzer
+import com.example.domain.RagThreatRetriever
+import com.example.domain.SupervisedUrlClassifier
 import com.example.domain.ThreatIntelligenceService
 import com.example.domain.UrlStructureAnalyzer
 import org.junit.Assert.*
@@ -78,4 +80,81 @@ class ExampleUnitTest {
         assertFalse(cleanStructure.hasPathObfuscation)
         assertTrue(cleanStructure.detectedThreats.isEmpty())
     }
+
+    @Test
+    fun testSupervisedModelMetadataAndInferenceParity() {
+        assertEquals("v1.1.0-stratified", SupervisedUrlClassifier.MODEL_VERSION)
+        assertNotNull(SupervisedUrlClassifier.MODEL_CHECKSUM)
+        assertEquals(24, SupervisedUrlClassifier.FEATURE_MEANS.size)
+        assertEquals(24, SupervisedUrlClassifier.FEATURE_STDS.size)
+        assertEquals(24, SupervisedUrlClassifier.WEIGHTS.size)
+
+        val maliciousUrl = "http://secure-login.bank-update.xyz/verify?token=123"
+        val mlResult = SupervisedUrlClassifier.predict(maliciousUrl)
+        assertTrue("Model should flag high probability for suspicious token-stuffed URL", mlResult.probability > 0.5f)
+        assertTrue(mlResult.topContributors.isNotEmpty())
+
+        val benignUrl = "https://www.google.com/search?q=cybersecurity"
+        val benignResult = SupervisedUrlClassifier.predict(benignUrl)
+        assertTrue("Benign search URL should have low phishing probability", benignResult.probability < 0.5f)
+    }
+
+    @Test
+    fun testRagThreatRetrieverCosineRetrieval() {
+        val result = RagThreatRetriever.retrieve("SBI YONO netbanking KYC PAN update blocked account")
+        assertNotNull(result.matchedCampaignTitle)
+        assertTrue(result.highestSimilarity > 0.15f)
+        assertTrue(result.topMatches.any { it.document.targetBrand.contains("State Bank of India") })
+
+        val safeResult = RagThreatRetriever.retrieve("RBI regulatory circular reserve bank of india official")
+        assertTrue(safeResult.topMatches.any { it.document.category == "Legitimate Authority" })
+    }
+
+    @Test
+    fun testNlpObfuscationAndHomoglyphDetection() {
+        // Cyrillic 'а' (U+0430) and 'о' (U+043E) replacing Latin letters
+        val homoglyphText = "Urgent: Upd\u0430te y\u043Eur b\u0430nk KYC now or account suspended!"
+        val nlp = NlpSemanticAnalyzer.analyze(homoglyphText)
+        assertTrue(nlp.hasObfuscation)
+        assertTrue(nlp.hasUrgency)
+        assertTrue(nlp.pressureTactics.any { it.contains("Homoglyph") || it.contains("punitive") || it.contains("temporal") })
+
+        // Zero-width space injection
+        val zeroWidthText = "Account\u200Blocked\u200BImmediately"
+        val zwResult = NlpSemanticAnalyzer.analyze(zeroWidthText)
+        assertTrue(zwResult.hasObfuscation)
+    }
+
+    @Test
+    fun testUrlStructureDangerousPayloadAndOpenRedirect() {
+        val apkUrl = "http://sbi-support.buzz/download/sbi_yono_update.apk"
+        val apkAnalysis = UrlStructureAnalyzer.analyze(apkUrl)
+        assertTrue(apkAnalysis.hasSuspiciousPayload)
+        assertTrue(apkAnalysis.detectedThreats.any { it.contains(".apk") })
+
+        val openRedirectUrl = "https://legit-service.com/login?redirect=http://malicious-site.top"
+        val redirectAnalysis = UrlStructureAnalyzer.analyze(openRedirectUrl)
+        assertTrue(redirectAnalysis.hasOpenRedirect)
+
+        val ipUrl = "http://192.168.1.50/bank/login"
+        val ipAnalysis = UrlStructureAnalyzer.analyze(ipUrl)
+        assertTrue(ipAnalysis.isIpAddress)
+
+        val atUrl = "http://legitbank.com@attacker-controlled.top/auth"
+        val atAnalysis = UrlStructureAnalyzer.analyze(atUrl)
+        assertTrue(atAnalysis.hasAtSymbolTrick)
+    }
+
+    @Test
+    fun testBrandImpersonationInPathOnUntrustedHost() {
+        val pathSpoofUrl = "http://198.51.100.45/secure/bankofamerica/login.html"
+        val brandCheck = BrandImpersonationDetector.evaluate(
+            cleanHost = "198.51.100.45",
+            contextText = "",
+            rawUrl = pathSpoofUrl
+        )
+        assertTrue(brandCheck.isImpersonating)
+        assertEquals("Bank of America", brandCheck.impersonatedBrand)
+    }
 }
+

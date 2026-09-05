@@ -50,7 +50,9 @@ data class EngineTelemetry(
     @param:Json(name = "shannon_entropy")
     val shannonEntropy: Float = 0.0f,
     @param:Json(name = "url_length")
-    val urlLength: Int = 0
+    val urlLength: Int = 0,
+    @param:Json(name = "model_version")
+    val modelVersion: String = "v1.1.0-stratified"
 )
 
 @Keep
