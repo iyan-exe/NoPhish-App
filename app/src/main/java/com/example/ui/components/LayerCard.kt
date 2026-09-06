@@ -140,22 +140,22 @@ fun LayerBreakdownSection(
 
         LayerCard(
             layerIndex = "03",
-            title = "NLP Semantic & Urgency Engine",
-            subtitle = "Linguistic imperative mood, temporal pressure & loss aversion analysis",
+            title = "Statistical NLP & Urgency Engine",
+            subtitle = "Statistical + rule-based imperative mood, temporal pressure & loss aversion analysis",
             statusText = nlpStatusText,
             statusColor = nlpStatusColor,
             detailContent = nlpDetailBuilder.toString().trim(),
             defaultExpanded = true
         )
 
-        // Layer 4: Brand Impersonation & NER Check
+        // Layer 4: Brand Impersonation & Authority Check
         val hasImpersonation = breakdown.brandImpersonation.contains("untrusted", ignoreCase = true) ||
                 breakdown.brandImpersonation.contains("mismatch", ignoreCase = true) ||
                 breakdown.brandImpersonation.contains("claims", ignoreCase = true)
         LayerCard(
             layerIndex = "04",
-            title = "Brand NER Verification",
-            subtitle = "Named Entity Recognition checking domain authority vs claimed brand",
+            title = "Brand Spoofing & Authority Check",
+            subtitle = "Cross-checks brand entities against authoritative domain registries",
             statusText = if (hasImpersonation) "Brand Mismatch" else "Authentic / N/A",
             statusColor = if (hasImpersonation) StatusPhishing else StatusSafe,
             detailContent = breakdown.brandImpersonation,

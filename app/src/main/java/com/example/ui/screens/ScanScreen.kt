@@ -1038,8 +1038,8 @@ fun ScanEngineConfiguratorCard(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 ConfigToggleRow(
-                    title = "NLP Urgency & Psychological Coercion",
-                    desc = "Scans context for 24h freeze, OTP, and account suspension cues",
+                    title = "Statistical NLP Urgency & Coercion",
+                    desc = "Scans context for 24h freeze, OTP, and account suspension cues using rule & statistical heuristics",
                     checked = nlpUrgencyEnabled,
                     onCheckedChange = onToggleNlpUrgency
                 )
@@ -1582,8 +1582,8 @@ fun EngineStatusBentoGrid(modifier: Modifier = Modifier) {
         ) {
             EngineStatusCard(
                 tag = "[03]",
-                title = "NLP URGENCY CORE",
-                subtitle = "Coercion & Panic Cue Extractor",
+                title = "STATISTICAL NLP",
+                subtitle = "Rule & Urgency Cue Extractor",
                 activeColor = StatusSafe,
                 icon = Icons.Filled.Security,
                 modifier = Modifier.weight(1f)

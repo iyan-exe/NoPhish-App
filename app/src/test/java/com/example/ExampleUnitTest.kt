@@ -117,7 +117,11 @@ class ExampleUnitTest {
         val nlp = NlpSemanticAnalyzer.analyze(homoglyphText)
         assertTrue(nlp.hasObfuscation)
         assertTrue(nlp.hasUrgency)
-        assertTrue(nlp.pressureTactics.any { it.contains("Homoglyph") || it.contains("punitive") || it.contains("temporal") })
+        assertTrue(nlp.pressureTactics.any { 
+            it.contains("homoglyph", ignoreCase = true) || 
+            it.contains("suspension", ignoreCase = true) || 
+            it.contains("deadline", ignoreCase = true) 
+        })
 
         // Zero-width space injection
         val zeroWidthText = "Account\u200Blocked\u200BImmediately"

@@ -73,9 +73,9 @@ fun ScanningRadarDialog(
     val stepLogs = listOf(
         Pair("L1_LEXICAL", "Analyzing domain structure & TLD heuristics..."),
         Pair("L2_SQL_DB", "Querying verified bank & gov authorities registry..."),
-        Pair("L3_NLP_AI", "Evaluating semantic urgency & threat signals..."),
+        Pair("L3_NLP", "Evaluating statistical urgency & threat signals..."),
         Pair("L4_NER_ID", "Cross-checking brand entity mismatch matrices..."),
-        Pair("SYNTHESIS", "Aggregating multi-layer neural threat score...")
+        Pair("SYNTHESIS", "Aggregating multi-tier evidence score...")
     )
 
     LaunchedEffect(Unit) {

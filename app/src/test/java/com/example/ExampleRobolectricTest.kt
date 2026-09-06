@@ -9,6 +9,7 @@ import com.example.domain.ThreatIntelligenceService
 import com.example.domain.UrlStructureAnalyzer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -231,6 +232,34 @@ class ExampleRobolectricTest {
       val result = engine.analyze(officialUrl, "")
       assertTrue("Risk score for official portal should be <= 10, got: ${result.riskScore}", result.riskScore <= 10)
       assertEquals("Safe", result.status)
+    }
+  }
+
+  @Test
+  fun `test whitelisted domain with open redirect is not marked safe`() {
+    val whitelistedWithRedirect = "https://www.google.com/url?q=http://phishing-site.xyz/login"
+    val db = com.example.data.local.PhishShieldDatabase.getDatabase(androidx.test.core.app.ApplicationProvider.getApplicationContext())
+    val engine = com.example.domain.PhishingDetectorEngine(db.whitelistDao())
+
+    kotlinx.coroutines.runBlocking {
+      val result = engine.analyze(whitelistedWithRedirect, "")
+      assertTrue("Whitelisted domain with open redirect must have high risk score, got: ${result.riskScore}", result.riskScore >= 65)
+      assertNotEquals("Safe", result.status)
+      assertTrue(result.detectedThreats.any { it.contains("redirect", ignoreCase = true) })
+    }
+  }
+
+  @Test
+  fun `test whitelisted domain with apk payload is not marked safe`() {
+    val whitelistedWithApk = "https://sbi.bank.in/downloads/app_update.apk"
+    val db = com.example.data.local.PhishShieldDatabase.getDatabase(androidx.test.core.app.ApplicationProvider.getApplicationContext())
+    val engine = com.example.domain.PhishingDetectorEngine(db.whitelistDao())
+
+    kotlinx.coroutines.runBlocking {
+      val result = engine.analyze(whitelistedWithApk, "")
+      assertTrue("Whitelisted domain with APK payload must have high risk score, got: ${result.riskScore}", result.riskScore >= 65)
+      assertNotEquals("Safe", result.status)
+      assertTrue(result.detectedThreats.any { it.contains(".apk", ignoreCase = true) })
     }
   }
 
