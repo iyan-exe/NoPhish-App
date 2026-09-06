@@ -177,14 +177,20 @@ class PhishingDetectorEngine(
                                 maxOf(parsed.riskScore, localResult.riskScore, 70)
                             }
                             // 2. Verified legitimate / whitelisted domain with clean path is safe
-                            (isWhitelisted || urlAnalysis.isKnownLegitimate) && !isDeterministicThreat -> {
+                            (isWhitelisted || urlAnalysis.isKnownLegitimate) && !isDeterministicThreat && !urlAnalysis.hasPathLookalike -> {
                                 minOf(parsed.riskScore, 10)
                             }
-                            // 3. Local engine detected a deterministic threat: Gemini reasoning CANNOT downgrade below local threat score
+                            // 3. Verified legitimate / whitelisted domain with lookalike path manipulation:
+                            // Legitimate registrable domain provides strong positive evidence;
+                            // Suspicious path lookalike produces a LOW or SUSPICIOUS warning signal, not an automatic phishing verdict
+                            (isWhitelisted || urlAnalysis.isKnownLegitimate) && urlAnalysis.hasPathLookalike -> {
+                                if (parsed.riskScore >= 65) 40 else maxOf(parsed.riskScore, 35)
+                            }
+                            // 4. Local engine detected a deterministic threat: Gemini reasoning CANNOT downgrade below local threat score
                             isDeterministicThreat -> {
                                 maxOf(parsed.riskScore, localResult.riskScore, 65)
                             }
-                            // 4. Standard fusion
+                            // 5. Standard fusion
                             else -> {
                                 maxOf(parsed.riskScore, localResult.riskScore)
                             }
@@ -196,7 +202,7 @@ class PhishingDetectorEngine(
                             else -> "Safe"
                         }
 
-                        val mergedThreats = if ((isWhitelisted || urlAnalysis.isKnownLegitimate) && !brandCheck.isImpersonating && !hasCriticalPathTampering) {
+                        val mergedThreats = if ((isWhitelisted || urlAnalysis.isKnownLegitimate) && !brandCheck.isImpersonating && !hasCriticalPathTampering && !urlAnalysis.hasPathLookalike) {
                             emptyList()
                         } else {
                             (parsed.detectedThreats + localResult.detectedThreats).distinct()
@@ -256,8 +262,14 @@ class PhishingDetectorEngine(
                 urlAnalysis.isIpAddress ||
                 urlAnalysis.isPunycode
 
-        if ((isWhitelisted || urlAnalysis.isKnownLegitimate) && !brandCheck.isImpersonating && !hasCriticalPathTampering) {
+        if ((isWhitelisted || urlAnalysis.isKnownLegitimate) && !brandCheck.isImpersonating && !hasCriticalPathTampering && !urlAnalysis.hasPathLookalike) {
             score = 0
+        } else if ((isWhitelisted || urlAnalysis.isKnownLegitimate) && !brandCheck.isImpersonating && !hasCriticalPathTampering && urlAnalysis.hasPathLookalike) {
+            // Legitimate registrable domain provides strong positive evidence.
+            // Suspicious path lookalike produces a LOW or SUSPICIOUS signal (score 35) with clear explanatory warnings,
+            // never automatically classifying legitimate institutions as phishing.
+            detectedThreats.addAll(urlAnalysis.detectedThreats)
+            score = 35
         } else {
             detectedThreats.addAll(urlAnalysis.detectedThreats)
             detectedThreats.addAll(threatIntel.threatSignatures)
@@ -287,6 +299,10 @@ class PhishingDetectorEngine(
 
             if (urlAnalysis.hasPathObfuscation) {
                 score += 70 // Deceptive leetspeak substitution in URL path
+            }
+
+            if (urlAnalysis.hasPathLookalike) {
+                score += 45 // Lookalike path manipulation on untrusted or compromised host
             }
 
             if (urlAnalysis.hasOpenRedirect) {
@@ -534,7 +550,9 @@ class PhishingDetectorEngine(
                 }
                 "Suspicious" -> {
                     append("WARNING: This URL exhibits risk indicators (Risk Score: $score/100). ")
-                    if (urlAnalysis.hasPathObfuscation) {
+                    if (urlAnalysis.hasPathLookalike) {
+                        append("Suspicious case-sensitive lookalike path detected (e.g. visual character substitution imitating an official path). While the domain '${urlAnalysis.cleanHost}' is legitimate, verify the specific URL path before interacting. ")
+                    } else if (urlAnalysis.hasPathObfuscation) {
                         append("Deceptive character substitution / leetspeak detected in URL path. ")
                     } else if (urlAnalysis.hasOpenRedirect) {
                         append("Open redirect destination detected in URL query. ")
@@ -588,6 +606,7 @@ TARGET URL DETAILS:
 - High Shannon Entropy: ${urlAnalysis.highEntropy}
 - Punycode/IDN: ${urlAnalysis.isPunycode}
 - Path Leetspeak Obfuscation: ${urlAnalysis.hasPathObfuscation}
+- Path Visual Lookalike Manipulation: ${urlAnalysis.hasPathLookalike}
 - Open Redirect Parameter: ${urlAnalysis.hasOpenRedirect}
 - Executable Download (.apk/.exe): ${urlAnalysis.hasSuspiciousPayload}
 

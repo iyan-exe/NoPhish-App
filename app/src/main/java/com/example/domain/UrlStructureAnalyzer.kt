@@ -23,6 +23,7 @@ data class UrlStructureAnalysisResult(
     val highEntropy: Boolean,
     val isPunycode: Boolean,
     val hasPathObfuscation: Boolean = false,
+    val hasPathLookalike: Boolean = false,
     val hasOpenRedirect: Boolean = false,
     val hasSuspiciousPayload: Boolean = false,
     val detectedThreats: List<String>,
@@ -62,7 +63,26 @@ object UrlStructureAnalyzer {
         "login", "signin", "logon", "auth", "authenticate", "verify", "verification",
         "update", "security", "secure", "password", "passcode", "account", "wallet",
         "banking", "bank", "otp", "credit", "debit", "card", "admin", "kyc", "sbi",
-        "claim", "refund", "invoice", "payment", "portal", "confirm", "validation"
+        "claim", "refund", "invoice", "payment", "portal", "confirm", "validation",
+        "retail", "personal", "corporate", "netbanking", "online", "support", "service",
+        "services", "customer", "profile", "access", "authorize"
+    )
+
+    // Sensitive keywords targeted by case-sensitive visual lookalikes or homoglyphs in paths
+    private val PATH_LOOKALIKE_KEYWORDS = listOf(
+        "retail", "personal", "corporate", "netbanking", "online", "banking", "bank",
+        "login", "signin", "logon", "auth", "authenticate", "verify", "verification",
+        "update", "security", "secure", "password", "passcode", "account", "wallet",
+        "otp", "credit", "debit", "card", "admin", "kyc", "sbi", "claim", "refund",
+        "invoice", "payment", "portal", "confirm", "validation", "support", "service",
+        "services", "customer", "profile", "access", "authorize", "official"
+    )
+
+    private val PATH_HOMOGLYPH_MAP = mapOf(
+        '\u0430' to 'a', '\u0435' to 'e', '\u0456' to 'i', '\u043E' to 'o',
+        '\u0440' to 'p', '\u0441' to 'c', '\u0443' to 'y', '\u0445' to 'x',
+        '\u0410' to 'A', '\u0412' to 'B', '\u0415' to 'E', '\u041D' to 'H',
+        '\u041E' to 'O', '\u0420' to 'P', '\u0421' to 'C', '\u0422' to 'T'
     )
 
     fun analyze(rawUrl: String): UrlStructureAnalysisResult {
@@ -92,6 +112,7 @@ object UrlStructureAnalyzer {
         var highEntropy = false
         var isPunycode = false
         var hasPathObfuscation = false
+        var hasPathLookalike = false
         var hasOpenRedirect = false
         var hasSuspiciousPayload = false
 
@@ -206,21 +227,28 @@ object UrlStructureAnalyzer {
                 threats.addAll(pathObfuscations)
             }
 
-            // 14. Open Redirect parameter detection
-            val openRedirects = detectOpenRedirect(path, query)
+            // 14. Suspicious Case-Sensitive Lookalike Path Manipulation (e.g. retaiI with uppercase 'I' spoofing retail)
+            val pathLookalikes = detectPathLookalike(path, query)
+            if (pathLookalikes.isNotEmpty()) {
+                hasPathLookalike = true
+                threats.addAll(pathLookalikes)
+            }
+
+            // 15. Open Redirect parameter detection (never blindly trusting initial host)
+            val openRedirects = detectOpenRedirect(path, query, host)
             if (openRedirects.isNotEmpty()) {
                 hasOpenRedirect = true
                 threats.addAll(openRedirects)
             }
 
-            // 15. Suspicious executable payload detection in path (.apk, .exe, etc.)
+            // 16. Suspicious executable payload detection in path (.apk, .exe, etc.)
             val dangerousPayloads = detectDangerousPayload(path)
             if (dangerousPayloads.isNotEmpty()) {
                 hasSuspiciousPayload = true
                 threats.addAll(dangerousPayloads)
             }
 
-            // 16. Directory traversal / Null byte injections
+            // 17. Directory traversal / Null byte injections
             val traversalThreats = detectPathTraversalOrNullByte(normalized)
             if (traversalThreats.isNotEmpty()) {
                 threats.addAll(traversalThreats)
@@ -230,6 +258,9 @@ object UrlStructureAnalyzer {
                 if (hasPathObfuscation) {
                     append("CRITICAL: Deceptive path obfuscation/leetspeak detected in URL endpoint. ")
                 }
+                if (hasPathLookalike) {
+                    append("WARNING: Suspicious case-sensitive lookalike path detected (e.g., visual character imitation). ")
+                }
                 if (hasOpenRedirect) {
                     append("WARNING: Potential open redirect destination found in URL query. ")
                 }
@@ -238,6 +269,8 @@ object UrlStructureAnalyzer {
                 }
                 if (isKnownLegit && threats.isEmpty()) {
                     append("Domain '$host' is a verified legitimate web entity with secure structural properties.")
+                } else if (isKnownLegit && hasPathLookalike && !hasPathObfuscation && !hasOpenRedirect && !hasSuspiciousPayload) {
+                    append("Domain '$host' is a verified legitimate web entity, but the URL path exhibits suspicious lookalike manipulation ('$path'). Exercise caution.")
                 } else if (threats.isEmpty()) {
                     append("Domain '$host' has standard structure with no typical manipulation techniques detected.")
                 } else {
@@ -267,6 +300,7 @@ object UrlStructureAnalyzer {
                 highEntropy = highEntropy,
                 isPunycode = isPunycode,
                 hasPathObfuscation = hasPathObfuscation,
+                hasPathLookalike = hasPathLookalike,
                 hasOpenRedirect = hasOpenRedirect,
                 hasSuspiciousPayload = hasSuspiciousPayload,
                 detectedThreats = threats,
@@ -294,6 +328,7 @@ object UrlStructureAnalyzer {
                 highEntropy = false,
                 isPunycode = false,
                 hasPathObfuscation = false,
+                hasPathLookalike = false,
                 hasOpenRedirect = false,
                 hasSuspiciousPayload = false,
                 detectedThreats = listOf("Malformed URL syntax"),
@@ -356,15 +391,87 @@ object UrlStructureAnalyzer {
         return threats
     }
 
-    private fun detectOpenRedirect(path: String, query: String): List<String> {
+    private fun detectPathLookalike(path: String, query: String): List<String> {
+        val threats = mutableListOf<String>()
+        val combined = "$path $query"
+        if (combined.isBlank()) return threats
+
+        val segments = combined.split('/', '\\', '-', '_', '.', '~', ';', '&', '=', '%', '?', '+')
+            .map { it.trim() }
+            .filter { it.length in 3..25 }
+
+        for (segment in segments) {
+            // 1. Case-sensitive lookalike: Uppercase 'I' (ASCII 73) visually substituting for lowercase 'l' (ASCII 108)
+            // Segment must be mixed-case (contains 'I' and at least one lowercase letter, not an ALL-CAPS acronym)
+            if (segment.contains('I') && segment.any { it.isLowerCase() }) {
+                val visualMapped = segment.replace('I', 'l').lowercase()
+                val normalLower = segment.lowercase()
+                if (visualMapped != normalLower) {
+                    for (keyword in PATH_LOOKALIKE_KEYWORDS) {
+                        if (visualMapped == keyword || visualMapped.startsWith(keyword) || visualMapped.endsWith(keyword)) {
+                            if (!normalLower.contains(keyword)) {
+                                threats.add("Suspicious case-sensitive lookalike path manipulation: segment '$segment' visually imitates '$keyword' (uppercase 'I' for 'l')")
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Unicode homoglyphs in path segment
+            if (segment.any { PATH_HOMOGLYPH_MAP.containsKey(it) }) {
+                val deHomoglyph = buildString {
+                    for (c in segment) {
+                        append(PATH_HOMOGLYPH_MAP[c] ?: c)
+                    }
+                }.lowercase()
+                for (keyword in PATH_LOOKALIKE_KEYWORDS) {
+                    if (deHomoglyph == keyword || deHomoglyph.startsWith(keyword) || deHomoglyph.endsWith(keyword)) {
+                        threats.add("Unicode homoglyph character mixing in URL path segment ('$segment' spoofing '$keyword')")
+                        break
+                    }
+                }
+            }
+        }
+        return threats
+    }
+
+    private fun detectOpenRedirect(path: String, query: String, host: String): List<String> {
         val threats = mutableListOf<String>()
         val combined = "$path?$query"
-        val redirectParamRegex = Regex("""(?i)(?:[?&/])(url|redirect|redirect_to|dest|destination|next|target|return|return_to|continue|goto|out|to|u|q|link|r)=((?:https?%3A%2F%2F|https?://|//)[^&\s]+)""")
+        val redirectParamRegex = Regex("""(?i)(?:[?&/])(url|redirect|redirect_to|redirect_url|dest|destination|next|target|return|return_to|continue|goto|out|to|u|q|link|r|forward|callback)=((?:https?%3A%2F%2F|https?://|//)[^&\s]+)""")
         val match = redirectParamRegex.find(combined)
         if (match != null) {
             val paramName = match.groupValues[1]
-            val targetUrl = match.groupValues[2]
-            threats.add("Potential Open Redirect parameter '$paramName' pointing to external target ('${targetUrl.take(35)}')")
+            val rawTarget = match.groupValues[2]
+            val decodedTarget = try {
+                java.net.URLDecoder.decode(rawTarget, "UTF-8")
+            } catch (e: Exception) {
+                rawTarget
+            }
+            val targetHost = try {
+                val normalizedTarget = if (decodedTarget.startsWith("//")) "https:$decodedTarget" else decodedTarget
+                URI(normalizedTarget).host?.lowercase() ?: ""
+            } catch (e: Exception) {
+                ""
+            }
+
+            val currentRootDomain = DomainUtils.extractRootDomain(host)
+            val targetRootDomain = if (targetHost.isNotBlank()) DomainUtils.extractRootDomain(targetHost) else ""
+
+            val isExternalRedirect = if (targetHost.isNotBlank() && currentRootDomain.isNotBlank()) {
+                targetRootDomain != currentRootDomain
+            } else {
+                true
+            }
+
+            if (isExternalRedirect) {
+                if (targetHost.isNotBlank()) {
+                    threats.add("Potential Open Redirect on '$host': parameter '$paramName' routes to external target '$targetHost'")
+                } else {
+                    threats.add("Potential Open Redirect parameter '$paramName' pointing to external target ('${decodedTarget.take(35)}')")
+                }
+            }
         }
         return threats
     }

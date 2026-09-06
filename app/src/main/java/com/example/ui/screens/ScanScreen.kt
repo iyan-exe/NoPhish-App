@@ -1318,7 +1318,7 @@ fun RealtimeUrlDissector(
                 fontFamily = FontFamily.Monospace,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isHighRiskTld || urlAnalysis?.hasPathObfuscation == true) StatusPhishing else if (isVerifiedBank) StatusSafe else NothingLightGrey
+                color = if (isHighRiskTld || urlAnalysis?.hasPathObfuscation == true) StatusPhishing else if (urlAnalysis?.hasPathLookalike == true) StatusSuspicious else if (isVerifiedBank) StatusSafe else NothingLightGrey
             )
         }
 
@@ -1387,6 +1387,21 @@ fun RealtimeUrlDissector(
                         fontSize = 8.sp,
                         fontWeight = FontWeight.Bold,
                         color = StatusPhishing
+                    )
+                }
+            } else if (urlAnalysis?.hasPathLookalike == true) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color(0xFF3A2E0F))
+                        .padding(horizontal = 6.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "LOOKALIKE PATH",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = StatusSuspicious
                     )
                 }
             } else if (urlAnalysis?.hasOpenRedirect == true) {

@@ -160,5 +160,63 @@ class ExampleUnitTest {
         assertTrue(brandCheck.isImpersonating)
         assertEquals("Bank of America", brandCheck.impersonatedBrand)
     }
+
+    @Test
+    fun testSbiCaseSensitiveLookalikePathManipulationEdgeCase() {
+        // Exact real-world edge case:
+        // Host is legitimate SBI production domain, but path contains 'retaiI' (uppercase 'I' instead of 'l')
+        val testUrl = "https://retail.onlinesbi.sbi/retaiI/login.html"
+        val analyzer = UrlStructureAnalyzer.analyze(testUrl)
+
+        // 1. Host verification: Registrable domain is verified legitimate SBI domain
+        assertEquals("retail.onlinesbi.sbi", analyzer.cleanHost)
+        assertTrue("Legitimate SBI host must be recognized as known legitimate", analyzer.isKnownLegitimate)
+
+        // 2. Lookalike detection: Case-sensitive visual manipulation detected without marking as digit leetspeak
+        assertTrue("URL path should flag hasPathLookalike for 'retaiI' spoofing 'retail'", analyzer.hasPathLookalike)
+        assertFalse("Case-sensitive lookalike must NOT be falsely marked as digit leetspeak", analyzer.hasPathObfuscation)
+        assertTrue(
+            "Threat list should contain descriptive lookalike warning",
+            analyzer.detectedThreats.any { it.contains("retaiI") && it.contains("retail") }
+        )
+        assertTrue(
+            "Explanation should note legitimate domain while warning of lookalike path",
+            analyzer.explanation.contains("lookalike") || analyzer.explanation.contains("retail.onlinesbi.sbi")
+        )
+    }
+
+    @Test
+    fun testCleanSbiPathIsSafe() {
+        val testUrl = "https://retail.onlinesbi.sbi/retail/login.html"
+        val analyzer = UrlStructureAnalyzer.analyze(testUrl)
+
+        assertTrue(analyzer.isKnownLegitimate)
+        assertFalse(analyzer.hasPathLookalike)
+        assertFalse(analyzer.hasPathObfuscation)
+        assertFalse(analyzer.hasOpenRedirect)
+        assertTrue(analyzer.detectedThreats.isEmpty())
+    }
+
+    @Test
+    fun testOpenRedirectOnLegitimateDomainNeverBlindlyTrusted() {
+        // Attack: Attacker leverages legitimate SBI domain with an open redirect to an external phishing target
+        val redirectUrl = "https://retail.onlinesbi.sbi/redirect?url=http://attacker-phishing.xyz/login"
+        val analyzer = UrlStructureAnalyzer.analyze(redirectUrl)
+
+        assertTrue("Host is recognized as SBI legitimate domain", analyzer.isKnownLegitimate)
+        assertTrue("Open redirect parameter must be flagged", analyzer.hasOpenRedirect)
+        assertTrue(
+            "Detected threats must report open redirect pointing to external target",
+            analyzer.detectedThreats.any { it.contains("Open Redirect") && it.contains("attacker-phishing.xyz") }
+        )
+    }
+
+    @Test
+    fun testSameDomainRedirectNotFlaggedAsOpenRedirect() {
+        val safeRedirectUrl = "https://retail.onlinesbi.sbi/login?redirect=https://retail.onlinesbi.sbi/retail/login.html"
+        val analyzer = UrlStructureAnalyzer.analyze(safeRedirectUrl)
+
+        assertFalse("Same-domain redirect should NOT be flagged as malicious open redirect", analyzer.hasOpenRedirect)
+    }
 }
 

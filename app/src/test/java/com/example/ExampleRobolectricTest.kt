@@ -5,8 +5,10 @@ import androidx.test.core.app.ApplicationProvider
 import com.example.domain.BrandImpersonationDetector
 import com.example.domain.DomainUtils
 import com.example.domain.NlpSemanticAnalyzer
+import com.example.domain.PhishingDetectorEngine
 import com.example.domain.ThreatIntelligenceService
 import com.example.domain.UrlStructureAnalyzer
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -388,5 +390,57 @@ class ExampleRobolectricTest {
       val actualStd = com.example.domain.SupervisedUrlClassifier.FEATURE_STDS[i]
       assertEquals("Std index $i must match", expectedStd, actualStd, 1e-5f)
     }
+  }
+
+  @Test
+  fun `test sbi case sensitive lookalike path produces suspicious signal and never automatic phishing`() = runBlocking {
+    val db = com.example.data.local.PhishShieldDatabase.getDatabase(ApplicationProvider.getApplicationContext())
+    val engine = PhishingDetectorEngine(db.whitelistDao())
+    val sbiLookalikeUrl = "https://retail.onlinesbi.sbi/retaiI/login.html"
+
+    val result = engine.analyze(sbiLookalikeUrl, "")
+
+    // 1. Never automatically classify legitimate domain as phishing
+    assertEquals("Should produce Suspicious status, NOT Phishing", "Suspicious", result.status)
+    // 2. Produces a low/suspicious signal (score 35)
+    assertEquals(35, result.riskScore)
+    // 3. User explanation provides clear warnings about the lookalike path while noting domain legitimacy
+    assertTrue(
+      "Explanation must warn of lookalike path",
+      result.userExplanation.contains("lookalike") || result.userExplanation.contains("retaiI")
+    )
+    assertTrue(
+      "Detected threats must report the lookalike path segment",
+      result.detectedThreats.any { threat -> threat.contains("retaiI") && threat.contains("retail") }
+    )
+  }
+
+  @Test
+  fun `test legitimate sbi clean path produces safe verdict`() = runBlocking {
+    val db = com.example.data.local.PhishShieldDatabase.getDatabase(ApplicationProvider.getApplicationContext())
+    val engine = PhishingDetectorEngine(db.whitelistDao())
+    val sbiCleanUrl = "https://retail.onlinesbi.sbi/retail/login.html"
+
+    val result = engine.analyze(sbiCleanUrl, "")
+
+    assertEquals("Safe", result.status)
+    assertEquals(0, result.riskScore)
+    assertTrue(result.detectedThreats.isEmpty())
+  }
+
+  @Test
+  fun `test open redirect on legitimate sbi domain escalates to phishing and never allows whitelist to override`() = runBlocking {
+    val db = com.example.data.local.PhishShieldDatabase.getDatabase(ApplicationProvider.getApplicationContext())
+    val engine = PhishingDetectorEngine(db.whitelistDao())
+    val openRedirectUrl = "https://retail.onlinesbi.sbi/redirect?url=http://attacker-phishing.xyz/login"
+
+    val result = engine.analyze(openRedirectUrl, "")
+
+    assertEquals("Phishing", result.status)
+    assertTrue("Risk score should escalate to at least 65 due to open redirect", result.riskScore >= 65)
+    assertTrue(
+      "Detected threats must explicitly include open redirect pointing to external target",
+      result.detectedThreats.any { threat -> threat.contains("Open Redirect") && threat.contains("attacker-phishing.xyz") }
+    )
   }
 }
