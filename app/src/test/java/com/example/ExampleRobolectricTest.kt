@@ -6,6 +6,8 @@ import com.example.domain.BrandImpersonationDetector
 import com.example.domain.DomainUtils
 import com.example.domain.NlpSemanticAnalyzer
 import com.example.domain.PhishingDetectorEngine
+import com.example.domain.RagThreatRetriever
+import com.example.domain.SupervisedUrlClassifier
 import com.example.domain.ThreatIntelligenceService
 import com.example.domain.UrlStructureAnalyzer
 import kotlinx.coroutines.runBlocking
@@ -441,6 +443,50 @@ class ExampleRobolectricTest {
     assertTrue(
       "Detected threats must explicitly include open redirect pointing to external target",
       result.detectedThreats.any { threat -> threat.contains("Open Redirect") && threat.contains("attacker-phishing.xyz") }
+    )
+  }
+
+  @Test
+  fun `test sbi path transposition retial produces suspicious status and score 35`() = runBlocking {
+    val db = com.example.data.local.PhishShieldDatabase.getDatabase(ApplicationProvider.getApplicationContext())
+    val engine = PhishingDetectorEngine(db.whitelistDao())
+    val testUrl = "https://retail.onlinesbi.sbi/retial/login.html"
+
+    val urlAnalysis = UrlStructureAnalyzer.analyze(testUrl)
+    val brandCheck = BrandImpersonationDetector.evaluate(urlAnalysis.cleanHost, "", testUrl)
+    val mlResult = SupervisedUrlClassifier.predict(testUrl)
+    val threatIntel = ThreatIntelligenceService.evaluate(urlAnalysis.cleanHost, urlAnalysis.path, testUrl)
+    val ragResult = RagThreatRetriever.retrieve("$testUrl  ${urlAnalysis.cleanHost} ${urlAnalysis.path} lookalike path typo")
+    val nlpResult = NlpSemanticAnalyzer.analyze("")
+
+    val result = engine.analyze(testUrl, "")
+
+    println("=== RUNTIME DETECTION PIPELINE AUDIT FOR: $testUrl ===")
+    println("LAYER 1 [UrlStructureAnalyzer]: host='${urlAnalysis.cleanHost}', rootDomain='${urlAnalysis.rootDomain}', isKnownLegitimate=${urlAnalysis.isKnownLegitimate}, hasPathLookalike=${urlAnalysis.hasPathLookalike}, hasPathObfuscation=${urlAnalysis.hasPathObfuscation}, hasOpenRedirect=${urlAnalysis.hasOpenRedirect}, threats=${urlAnalysis.detectedThreats}")
+    println("LAYER 2 [BrandImpersonationDetector]: isImpersonating=${brandCheck.isImpersonating}, brand=${brandCheck.impersonatedBrand}")
+    println("LAYER 3 [SupervisedUrlClassifier ML]: isPhishing=${mlResult.isPhishing}, probability=${mlResult.probability}, confidence=${mlResult.confidencePercentage}%")
+    println("LAYER 4 [RagThreatRetriever]: topMatch=${ragResult.matchedCampaignTitle}, similarity=${ragResult.highestSimilarity}")
+    println("LAYER 5 [ThreatIntelligenceService]: reputation=${threatIntel.reputationScore}, signatures=${threatIntel.threatSignatures}")
+    println("LAYER 6 [NlpSemanticAnalyzer]: hasUrgency=${nlpResult.hasUrgency}, urgencyScore=${nlpResult.urgencyScore}")
+    println("LAYER 7 [Final Risk Engine]: STATUS='${result.status}', RISK_SCORE=${result.riskScore}/100, THREATS=${result.detectedThreats}")
+    println("EXPLANATION: ${result.userExplanation}")
+    println("=========================================================")
+
+    // 1. Never automatically classify legitimate domain as phishing due to path typo
+    assertEquals("Should produce Suspicious status, NOT Phishing", "Suspicious", result.status)
+    // 2. Score must be 35 (Suspicious / Low tier)
+    assertEquals(35, result.riskScore)
+    // 3. User explanation warns about the path anomaly while recognizing legitimate institution
+    assertTrue(
+      "Explanation must warn of path typo / lookalike",
+      result.userExplanation.contains("retial") || result.userExplanation.contains("retail") ||
+      result.userExplanation.contains("lookalike") || result.userExplanation.contains("transposition") ||
+      result.userExplanation.contains("typo")
+    )
+    // 4. Detected threats must contain the specific transposition flag
+    assertTrue(
+      "Detected threats must report retial transposition",
+      result.detectedThreats.any { threat -> threat.contains("retial") && threat.contains("retail") }
     )
   }
 }

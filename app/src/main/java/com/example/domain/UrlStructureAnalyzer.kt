@@ -68,14 +68,34 @@ object UrlStructureAnalyzer {
         "services", "customer", "profile", "access", "authorize"
     )
 
-    // Sensitive keywords targeted by case-sensitive visual lookalikes or homoglyphs in paths
+    // Sensitive keywords targeted by case-sensitive visual lookalikes, homoglyphs, or typos in paths
     private val PATH_LOOKALIKE_KEYWORDS = listOf(
         "retail", "personal", "corporate", "netbanking", "online", "banking", "bank",
-        "login", "signin", "logon", "auth", "authenticate", "verify", "verification",
+        "login", "signin", "sign-in", "logon", "auth", "authenticate", "verify", "verification",
         "update", "security", "secure", "password", "passcode", "account", "wallet",
         "otp", "credit", "debit", "card", "admin", "kyc", "sbi", "claim", "refund",
         "invoice", "payment", "portal", "confirm", "validation", "support", "service",
-        "services", "customer", "profile", "access", "authorize", "official"
+        "services", "customer", "profile", "access", "authorize", "official", "dashboard"
+    )
+
+    // Standard benign common web and English dictionary path words to prevent false positives
+    private val BENIGN_PATH_WORDS = setOf(
+        "detail", "details", "logo", "logos", "cart", "count", "date", "dates",
+        "main", "home", "index", "view", "views", "list", "lists", "show", "item", "items",
+        "product", "products", "order", "orders", "blog", "news", "post", "posts",
+        "page", "pages", "help", "info", "about", "contact", "terms", "privacy",
+        "docs", "doc", "api", "user", "users", "group", "groups", "file", "files",
+        "media", "image", "images", "img", "static", "assets", "css", "js", "fonts",
+        "app", "download", "downloads", "search", "find", "share", "tag", "tags",
+        "category", "categories", "forum", "event", "events", "form", "forms",
+        "report", "reports", "status", "feed", "feeds", "site", "sites", "link", "links",
+        "rate", "rates", "rank", "ranks", "mail", "send", "open", "close", "chat",
+        "team", "work", "job", "jobs", "career", "careers", "press", "legal", "faq",
+        "article", "articles", "photo", "photos", "video", "videos", "audio",
+        "content", "contents", "section", "sections", "theme", "themes", "plugin", "plugins",
+        "shop", "shopping", "store", "stores", "pricing", "plan", "plans", "price",
+        "book", "books", "guide", "guides", "tutorial", "tutorials", "code", "tools",
+        "general", "public", "common", "global", "default", "landing"
     )
 
     private val PATH_HOMOGLYPH_MAP = mapOf(
@@ -259,7 +279,7 @@ object UrlStructureAnalyzer {
                     append("CRITICAL: Deceptive path obfuscation/leetspeak detected in URL endpoint. ")
                 }
                 if (hasPathLookalike) {
-                    append("WARNING: Suspicious case-sensitive lookalike path detected (e.g., visual character imitation). ")
+                    append("WARNING: Suspicious lookalike path or typo detected (e.g., character transposition or visual imitation). ")
                 }
                 if (hasOpenRedirect) {
                     append("WARNING: Potential open redirect destination found in URL query. ")
@@ -391,34 +411,165 @@ object UrlStructureAnalyzer {
         return threats
     }
 
+    private fun isAdjacentTransposition(s1: String, s2: String): Boolean {
+        if (s1.length != s2.length || s1 == s2) return false
+        val diffIndices = mutableListOf<Int>()
+        for (i in s1.indices) {
+            if (s1[i] != s2[i]) diffIndices.add(i)
+        }
+        return diffIndices.size == 2 &&
+                diffIndices[1] == diffIndices[0] + 1 &&
+                s1[diffIndices[0]] == s2[diffIndices[1]] &&
+                s1[diffIndices[1]] == s2[diffIndices[0]]
+    }
+
+    private fun isSingleCharInsertion(longer: String, shorter: String): Boolean {
+        if (longer.length != shorter.length + 1) return false
+        var diffFound = false
+        var i = 0
+        var j = 0
+        while (i < longer.length && j < shorter.length) {
+            if (longer[i] != shorter[j]) {
+                if (diffFound) return false
+                diffFound = true
+                i++
+            } else {
+                i++
+                j++
+            }
+        }
+        return true
+    }
+
+    private fun isSingleCharDeletion(shorter: String, longer: String): Boolean {
+        return isSingleCharInsertion(longer, shorter)
+    }
+
+    private fun isSingleCharSubstitution(s1: String, s2: String): Boolean {
+        if (s1.length != s2.length || s1 == s2) return false
+        var diffCount = 0
+        for (i in s1.indices) {
+            if (s1[i] != s2[i]) {
+                diffCount++
+                if (diffCount > 1) return false
+            }
+        }
+        return diffCount == 1
+    }
+
+    private fun isRepeatedCharManipulation(s1: String, s2: String): Boolean {
+        if (s1 == s2 || s1.length <= s2.length) return false
+        fun collapse(s: String): String {
+            val sb = StringBuilder()
+            for (i in s.indices) {
+                if (i == 0 || s[i] != s[i - 1]) sb.append(s[i])
+            }
+            return sb.toString()
+        }
+        val collapsed1 = collapse(s1)
+        val collapsed2 = collapse(s2)
+        if (collapsed1 == collapsed2) {
+            val hasTriple = (0 until s1.length - 2).any { s1[it] == s1[it + 1] && s1[it] == s1[it + 2] }
+            if (hasTriple) return true
+            if (s1.length >= s2.length + 2) return true
+        }
+        return false
+    }
+
+    private fun damerauLevenshteinDistance(s1: String, s2: String): Int {
+        val len1 = s1.length
+        val len2 = s2.length
+        val d = Array(len1 + 1) { IntArray(len2 + 1) }
+
+        for (i in 0..len1) d[i][0] = i
+        for (j in 0..len2) d[0][j] = j
+
+        for (i in 1..len1) {
+            for (j in 1..len2) {
+                val cost = if (s1[i - 1] == s2[j - 1]) 0 else 1
+                d[i][j] = minOf(
+                    d[i - 1][j] + 1,        // deletion
+                    d[i][j - 1] + 1,        // insertion
+                    d[i - 1][j - 1] + cost  // substitution
+                )
+                if (i > 1 && j > 1 && s1[i - 1] == s2[j - 2] && s1[i - 2] == s2[j - 1]) {
+                    d[i][j] = minOf(d[i][j], d[i - 2][j - 2] + 1) // transposition
+                }
+            }
+        }
+        return d[len1][len2]
+    }
+
     private fun detectPathLookalike(path: String, query: String): List<String> {
         val threats = mutableListOf<String>()
         val combined = "$path $query"
         if (combined.isBlank()) return threats
 
-        val segments = combined.split('/', '\\', '-', '_', '.', '~', ';', '&', '=', '%', '?', '+')
-            .map { it.trim() }
-            .filter { it.length in 3..25 }
+        // Extract Candidate Segments
+        val rawSegments = LinkedHashSet<String>()
+        val pathParts = path.split('/', '\\').map { it.trim() }.filter { it.isNotBlank() }
+        for (part in pathParts) {
+            val stripped = part.substringBefore('?').substringBefore('#')
+            val withoutExt = if (stripped.contains('.')) stripped.substringBeforeLast('.') else stripped
+            if (withoutExt.isNotBlank() && withoutExt.length in 3..35) {
+                rawSegments.add(withoutExt)
+            }
+            val subParts = stripped.split('-', '_', '.', '~', ';', '&', '=', '%', '+')
+                .map { it.trim() }
+                .filter { it.length in 3..35 }
+            rawSegments.addAll(subParts)
+        }
+        if (query.isNotBlank()) {
+            val queryParts = query.split('&', ';', '=', '+', '%', '/', '-')
+                .map { it.trim() }
+                .filter { it.length in 3..35 }
+            rawSegments.addAll(queryParts)
+        }
 
-        for (segment in segments) {
-            // 1. Case-sensitive lookalike: Uppercase 'I' (ASCII 73) visually substituting for lowercase 'l' (ASCII 108)
-            // Segment must be mixed-case (contains 'I' and at least one lowercase letter, not an ALL-CAPS acronym)
+        // Canonical set of keywords for exact matching check
+        val cleanKeywordSet = PATH_LOOKALIKE_KEYWORDS.map { it.lowercase() }.toSet()
+        val canonicalKeywordMap = PATH_LOOKALIKE_KEYWORDS.associateWith {
+            it.lowercase().replace("-", "").replace("_", "")
+        }
+
+        for (segment in rawSegments) {
+            val lower = segment.lowercase()
+            val canon = lower.replace("-", "").replace("_", "")
+
+            // 1. If segment is an EXACT match to any high-value keyword, it is legitimate usage -> NOT a lookalike
+            if (cleanKeywordSet.contains(lower) || canonicalKeywordMap.values.contains(canon)) {
+                continue
+            }
+
+            // 2. If segment is a known benign common web/dictionary word (e.g. detail, logo, cart, date), do NOT flag
+            if (BENIGN_PATH_WORDS.contains(lower) || BENIGN_PATH_WORDS.contains(canon)) {
+                continue
+            }
+
+            // 3. If segment contains leetspeak digits/symbols, it belongs to detectPathObfuscation, skip here
+            if (lower.any { it.isDigit() || it == '@' || it == '$' || it == '!' }) {
+                continue
+            }
+
+            var segmentMatched = false
+
+            // 4. Case-sensitive lookalike: Uppercase 'I' (ASCII 73) visually substituting for lowercase 'l' (ASCII 108)
             if (segment.contains('I') && segment.any { it.isLowerCase() }) {
                 val visualMapped = segment.replace('I', 'l').lowercase()
-                val normalLower = segment.lowercase()
-                if (visualMapped != normalLower) {
+                if (visualMapped != lower) {
                     for (keyword in PATH_LOOKALIKE_KEYWORDS) {
-                        if (visualMapped == keyword || visualMapped.startsWith(keyword) || visualMapped.endsWith(keyword)) {
-                            if (!normalLower.contains(keyword)) {
-                                threats.add("Suspicious case-sensitive lookalike path manipulation: segment '$segment' visually imitates '$keyword' (uppercase 'I' for 'l')")
-                                break
-                            }
+                        val cKey = canonicalKeywordMap[keyword] ?: keyword
+                        if (visualMapped == keyword || visualMapped.replace("-", "").replace("_", "") == cKey) {
+                            threats.add("Suspicious case-sensitive lookalike path manipulation: segment '$segment' visually imitates '$keyword' (uppercase 'I' for 'l')")
+                            segmentMatched = true
+                            break
                         }
                     }
                 }
             }
+            if (segmentMatched) continue
 
-            // 2. Unicode homoglyphs in path segment
+            // 5. Unicode homoglyphs in path segment
             if (segment.any { PATH_HOMOGLYPH_MAP.containsKey(it) }) {
                 val deHomoglyph = buildString {
                     for (c in segment) {
@@ -426,14 +577,62 @@ object UrlStructureAnalyzer {
                     }
                 }.lowercase()
                 for (keyword in PATH_LOOKALIKE_KEYWORDS) {
-                    if (deHomoglyph == keyword || deHomoglyph.startsWith(keyword) || deHomoglyph.endsWith(keyword)) {
+                    val cKey = canonicalKeywordMap[keyword] ?: keyword
+                    if (deHomoglyph == keyword || deHomoglyph.replace("-", "").replace("_", "") == cKey) {
                         threats.add("Unicode homoglyph character mixing in URL path segment ('$segment' spoofing '$keyword')")
+                        segmentMatched = true
+                        break
+                    }
+                }
+            }
+            if (segmentMatched) continue
+
+            // 6. Typo / Transposition / Edit-Distance detection against high-value tokens
+            for (keyword in PATH_LOOKALIKE_KEYWORDS) {
+                val cKey = canonicalKeywordMap[keyword] ?: keyword
+
+                // Check Adjacent Character Transposition (e.g. retial vs retail, logni vs login, acocunt vs account)
+                if (canon.length == cKey.length && canon.length >= 4) {
+                    if (isAdjacentTransposition(canon, cKey)) {
+                        threats.add("Suspicious path transposition typo detected: segment '$segment' appears to imitate '$keyword' (adjacent characters swapped)")
+                        segmentMatched = true
+                        break
+                    }
+                }
+
+                // Check Repeated Character Manipulation (e.g. reeetail vs retail, logggin vs login)
+                if (canon.length > cKey.length && isRepeatedCharManipulation(canon, cKey)) {
+                    threats.add("Suspicious repeated-character path manipulation: segment '$segment' appears to imitate '$keyword'")
+                    segmentMatched = true
+                    break
+                }
+
+                // Check Single Character Edit Distance (insertion, deletion, substitution)
+                // Filter for tokens length >= 5 to prevent broad false-positive edits on short words
+                if (cKey.length >= 5 && kotlin.math.abs(canon.length - cKey.length) <= 1) {
+                    val dist = damerauLevenshteinDistance(canon, cKey)
+                    if (dist == 1) {
+                        when {
+                            isSingleCharInsertion(canon, cKey) -> {
+                                threats.add("Suspicious path typo detected: segment '$segment' appears to imitate '$keyword' (single character insertion)")
+                            }
+                            isSingleCharDeletion(canon, cKey) -> {
+                                threats.add("Suspicious path typo detected: segment '$segment' appears to imitate '$keyword' (single character omission)")
+                            }
+                            isSingleCharSubstitution(canon, cKey) -> {
+                                threats.add("Suspicious path typo detected: segment '$segment' appears to imitate '$keyword' (single character substitution)")
+                            }
+                            else -> {
+                                threats.add("Suspicious path lookalike detected: segment '$segment' is suspiciously similar to '$keyword'")
+                            }
+                        }
+                        segmentMatched = true
                         break
                     }
                 }
             }
         }
-        return threats
+        return threats.distinct()
     }
 
     private fun detectOpenRedirect(path: String, query: String, host: String): List<String> {

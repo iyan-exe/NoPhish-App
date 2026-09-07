@@ -46,7 +46,7 @@ class PhishingDetectorEngine(
         // 1. Run local multi-layer analysis pipeline with REAL algorithms
         val urlAnalysis = UrlStructureAnalyzer.analyze(trimmedUrl)
         val mlResult = SupervisedUrlClassifier.predict(trimmedUrl)
-        val ragQuery = "$trimmedUrl $trimmedContext ${urlAnalysis.cleanHost} ${urlAnalysis.path}"
+        val ragQuery = "$trimmedUrl $trimmedContext ${urlAnalysis.cleanHost} ${urlAnalysis.path} ${if (urlAnalysis.hasPathLookalike) "lookalike path typo" else ""}"
         val ragResult = RagThreatRetriever.retrieve(ragQuery)
         val nlpAnalysis = NlpSemanticAnalyzer.analyze(trimmedContext)
         val brandCheck = BrandImpersonationDetector.evaluate(urlAnalysis.cleanHost, trimmedContext, trimmedUrl)
@@ -551,7 +551,17 @@ class PhishingDetectorEngine(
                 "Suspicious" -> {
                     append("WARNING: This URL exhibits risk indicators (Risk Score: $score/100). ")
                     if (urlAnalysis.hasPathLookalike) {
-                        append("Suspicious case-sensitive lookalike path detected (e.g. visual character substitution imitating an official path). While the domain '${urlAnalysis.cleanHost}' is legitimate, verify the specific URL path before interacting. ")
+                        val specificIssue = urlAnalysis.detectedThreats.firstOrNull {
+                            it.contains("lookalike", ignoreCase = true) ||
+                            it.contains("typo", ignoreCase = true) ||
+                            it.contains("transposition", ignoreCase = true) ||
+                            it.contains("imitate", ignoreCase = true)
+                        }
+                        if (specificIssue != null) {
+                            append("$specificIssue. While the domain '${urlAnalysis.cleanHost}' is legitimate, verify the specific URL path before interacting. ")
+                        } else {
+                            append("Suspicious lookalike path or typo detected (e.g. visual character substitution or transposition imitating an official path). While the domain '${urlAnalysis.cleanHost}' is legitimate, verify the specific URL path before interacting. ")
+                        }
                     } else if (urlAnalysis.hasPathObfuscation) {
                         append("Deceptive character substitution / leetspeak detected in URL path. ")
                     } else if (urlAnalysis.hasOpenRedirect) {
@@ -606,7 +616,7 @@ TARGET URL DETAILS:
 - High Shannon Entropy: ${urlAnalysis.highEntropy}
 - Punycode/IDN: ${urlAnalysis.isPunycode}
 - Path Leetspeak Obfuscation: ${urlAnalysis.hasPathObfuscation}
-- Path Visual Lookalike Manipulation: ${urlAnalysis.hasPathLookalike}
+- Path Lookalike / Typo Manipulation: ${urlAnalysis.hasPathLookalike}
 - Open Redirect Parameter: ${urlAnalysis.hasOpenRedirect}
 - Executable Download (.apk/.exe): ${urlAnalysis.hasSuspiciousPayload}
 

@@ -218,5 +218,76 @@ class ExampleUnitTest {
 
         assertFalse("Same-domain redirect should NOT be flagged as malicious open redirect", analyzer.hasOpenRedirect)
     }
+
+    @Test
+    fun testSbiPathTranspositionTypoEdgeCase() {
+        // Real-world failure: https://retail.onlinesbi.sbi/retial/login.html
+        // 'retial' is an adjacent transposition typo of 'retail' ('i' and 'a' swapped)
+        val testUrl = "https://retail.onlinesbi.sbi/retial/login.html"
+        val analyzer = UrlStructureAnalyzer.analyze(testUrl)
+
+        // 1. Host verification
+        assertEquals("retail.onlinesbi.sbi", analyzer.cleanHost)
+        assertTrue("Legitimate SBI host must be recognized as known legitimate", analyzer.isKnownLegitimate)
+
+        // 2. Transposition lookalike detection
+        assertTrue("URL path should flag hasPathLookalike for transposition 'retial'", analyzer.hasPathLookalike)
+        assertFalse("Transposition typo must NOT be falsely marked as digit leetspeak obfuscation", analyzer.hasPathObfuscation)
+        assertTrue(
+            "Threat list should contain transposition warning for 'retial' imitating 'retail'",
+            analyzer.detectedThreats.any { it.contains("retial") && it.contains("retail") }
+        )
+    }
+
+    @Test
+    fun testPathLookalikeVersusBaselineTokens() {
+        // /retail/login.html -> legitimate baseline (SAFE)
+        val retailClean = UrlStructureAnalyzer.analyze("https://retail.onlinesbi.sbi/retail/login.html")
+        assertFalse("/retail/login.html should not flag hasPathLookalike", retailClean.hasPathLookalike)
+
+        // /retaiI/login.html -> mixed-case lookalike (SUSPICIOUS)
+        val retaiICase = UrlStructureAnalyzer.analyze("https://retail.onlinesbi.sbi/retaiI/login.html")
+        assertTrue("/retaiI/login.html must flag hasPathLookalike", retaiICase.hasPathLookalike)
+
+        // /login -> legitimate baseline
+        val loginClean = UrlStructureAnalyzer.analyze("https://example.com/login")
+        assertFalse("/login should not flag hasPathLookalike", loginClean.hasPathLookalike)
+
+        // /logni -> path lookalike (transposition)
+        val logniTypo = UrlStructureAnalyzer.analyze("https://example.com/logni")
+        assertTrue("/logni must flag hasPathLookalike", logniTypo.hasPathLookalike)
+        assertTrue(logniTypo.detectedThreats.any { it.contains("logni") && it.contains("login") })
+
+        // /account -> legitimate baseline
+        val accountClean = UrlStructureAnalyzer.analyze("https://example.com/account")
+        assertFalse("/account should not flag hasPathLookalike", accountClean.hasPathLookalike)
+
+        // /acocunt -> path lookalike (transposition)
+        val acocuntTypo = UrlStructureAnalyzer.analyze("https://example.com/acocunt")
+        assertTrue("/acocunt must flag hasPathLookalike", acocuntTypo.hasPathLookalike)
+        assertTrue(acocuntTypo.detectedThreats.any { it.contains("acocunt") && it.contains("account") })
+    }
+
+    @Test
+    fun testBenignPathsDoNotTriggerFalsePositives() {
+        // Paths containing words like 'detail', 'logo', 'cart', 'date', 'count' must NOT trigger lookalike flags
+        val detailUrl = UrlStructureAnalyzer.analyze("https://example.com/product/detail.html")
+        assertFalse("Benign 'detail' should not trigger lookalike flag", detailUrl.hasPathLookalike)
+
+        val logoUrl = UrlStructureAnalyzer.analyze("https://example.com/assets/logo.png")
+        assertFalse("Benign 'logo' should not trigger lookalike flag", logoUrl.hasPathLookalike)
+
+        val cartUrl = UrlStructureAnalyzer.analyze("https://example.com/store/cart")
+        assertFalse("Benign 'cart' should not trigger lookalike flag", cartUrl.hasPathLookalike)
+
+        val countUrl = UrlStructureAnalyzer.analyze("https://example.com/api/count")
+        assertFalse("Benign 'count' should not trigger lookalike flag", countUrl.hasPathLookalike)
+
+        val dateUrl = UrlStructureAnalyzer.analyze("https://example.com/events/date")
+        assertFalse("Benign 'date' should not trigger lookalike flag", dateUrl.hasPathLookalike)
+
+        val blogUrl = UrlStructureAnalyzer.analyze("https://example.com/blog/news-article")
+        assertFalse("Benign blog URL should not trigger lookalike flag", blogUrl.hasPathLookalike)
+    }
 }
 
