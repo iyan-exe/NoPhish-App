@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
@@ -8,6 +9,7 @@ import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,19 +32,30 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AltRoute
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.FactCheck
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LocalPostOffice
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.VpnKey
@@ -51,9 +64,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
@@ -76,6 +91,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.EvidenceItem
+import com.example.data.model.EvidenceSeverity
+import com.example.domain.BenchmarkMetrics
+import com.example.domain.CaseEvaluationResult
 import com.example.domain.DomainUtils
 import com.example.domain.UrlStructureAnalyzer
 import com.example.ui.MainViewModel
@@ -127,6 +146,15 @@ fun ScanScreen(
     val context = LocalContext.current
     val urlInput by viewModel.urlInput.collectAsState()
     val contextInput by viewModel.contextInput.collectAsState()
+    val htmlInput by viewModel.htmlInput.collectAsState()
+    val qrPayloadInput by viewModel.qrPayloadInput.collectAsState()
+    val screenshotCluesInput by viewModel.screenshotCluesInput.collectAsState()
+    val redirectHopsInput by viewModel.redirectHopsInput.collectAsState()
+    val isResearchMode by viewModel.isResearchMode.collectAsState()
+    val activeInputTab by viewModel.activeInputTab.collectAsState()
+    val benchmarkMetrics by viewModel.benchmarkMetrics.collectAsState()
+    val benchmarkResults by viewModel.benchmarkResults.collectAsState()
+    val isRunningBenchmark by viewModel.isRunningBenchmark.collectAsState()
     val isScanning by viewModel.isScanning.collectAsState()
     val currentResult by viewModel.currentResult.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
@@ -158,31 +186,38 @@ fun ScanScreen(
                 category = "POSTAL"
             ),
             QuickScenario(
-                title = "HDFC NetBanking Alert",
-                icon = Icons.Filled.Shield,
-                targetUrl = "http://hdfcbk-netbanking-login.xyz/auth",
-                contextMessage = "Dear HDFC Customer, your NetBanking access is temporarily locked due to suspicious activity. Verify credentials to restore.",
-                category = "FINTECH"
-            ),
-            QuickScenario(
-                title = "MetaMask Web3 Airdrop",
+                title = "MetaMask Airdrop",
                 icon = Icons.Filled.VpnKey,
                 targetUrl = "http://claim-airdrop-metamask.live/connect",
                 contextMessage = "Congratulations! You are eligible for 500 USDT Token Airdrop. Connect wallet and enter recovery phrase to claim.",
                 category = "CRYPTO"
             ),
             QuickScenario(
-                title = "Electricity Disconnection",
-                icon = Icons.Filled.ElectricBolt,
-                targetUrl = "http://bijli-bill-update.online/pay",
-                contextMessage = "Dear Consumer, your electricity power will be disconnected tonight at 9:30 PM from the power office due to unpaid bill.",
-                category = "UTILITY"
+                title = "Open Redirect Cloak",
+                icon = Icons.Filled.AltRoute,
+                targetUrl = "https://legit-portal.com/redirect?to=http://stealth-attacker.net/login",
+                contextMessage = "Please click your verified portal login link to continue to payment gateway.",
+                category = "REDIRECT"
+            ),
+            QuickScenario(
+                title = "Quishing QR Attack",
+                icon = Icons.Filled.QrCode,
+                targetUrl = "https://parking-pay-quick.xyz/charge",
+                contextMessage = "Scan QR code on parking meter or restaurant receipt to authorize instant UPI payment.",
+                category = "QUISHING"
+            ),
+            QuickScenario(
+                title = "Credential Form",
+                icon = Icons.Filled.Code,
+                targetUrl = "http://corporate-sso-verify.org/login",
+                contextMessage = "Mandatory security re-authentication. Enter corporate credentials to keep your account active.",
+                category = "HTML_FORM"
             ),
             QuickScenario(
                 title = "Official SBI (.bank.in)",
                 icon = Icons.Filled.VerifiedUser,
                 targetUrl = "https://retail.onlinesbi.sbi/retail/login.htm",
-                contextMessage = "Welcome to State Bank of India Retail Internet Banking portal.",
+                contextMessage = "Welcome to State Bank of India Retail Internet Banking portal under RBI authorized registry.",
                 category = "LEGITIMATE"
             )
         )
@@ -219,6 +254,14 @@ fun ScanScreen(
             )
         }
 
+        // User / Research Mode Switch Bar
+        item {
+            UserResearchModeToggleBar(
+                isResearchMode = isResearchMode,
+                onToggle = { viewModel.toggleResearchMode() }
+            )
+        }
+
         // Smart Clipboard Sniffer Prompt (When link is detected in clipboard)
         if (clipboardSnippet.isNotEmpty()) {
             item {
@@ -235,7 +278,7 @@ fun ScanScreen(
             }
         }
 
-        // Target URL Input Card (Nothing OS Bento Style)
+        // Multimodal Input Card (Nothing OS Bento Style)
         item {
             Card(
                 modifier = Modifier
@@ -259,7 +302,7 @@ fun ScanScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "TARGET URL *",
+                                text = "MULTIMODAL THREAT INPUT *",
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -274,7 +317,15 @@ fun ScanScreen(
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                     if (clipboard.hasPrimaryClip()) {
                                         val clip = clipboard.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
-                                        if (clip.isNotBlank()) viewModel.onUrlChange(clip)
+                                        if (clip.isNotBlank()) {
+                                            when (activeInputTab) {
+                                                0 -> viewModel.onUrlChange(clip)
+                                                1 -> viewModel.onQrPayloadChange(clip)
+                                                2 -> viewModel.onHtmlChange(clip)
+                                                3 -> viewModel.onScreenshotCluesChange(clip)
+                                                4 -> viewModel.onRedirectHopsChange(clip)
+                                            }
+                                        }
                                     }
                                 },
                                 modifier = Modifier
@@ -283,20 +334,37 @@ fun ScanScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.ContentPaste,
-                                    contentDescription = "Paste URL",
+                                    contentDescription = "Paste Input",
                                     tint = NothingWhite,
                                     modifier = Modifier.size(15.dp)
                                 )
                             }
 
-                            if (urlInput.isNotEmpty()) {
+                            val hasInputToClear = when (activeInputTab) {
+                                0 -> urlInput.isNotEmpty()
+                                1 -> qrPayloadInput.isNotEmpty()
+                                2 -> htmlInput.isNotEmpty()
+                                3 -> screenshotCluesInput.isNotEmpty()
+                                4 -> redirectHopsInput.isNotEmpty()
+                                else -> false
+                            }
+
+                            if (hasInputToClear) {
                                 IconButton(
-                                    onClick = { viewModel.onUrlChange("") },
+                                    onClick = {
+                                        when (activeInputTab) {
+                                            0 -> viewModel.onUrlChange("")
+                                            1 -> viewModel.onQrPayloadChange("")
+                                            2 -> viewModel.onHtmlChange("")
+                                            3 -> viewModel.onScreenshotCluesChange("")
+                                            4 -> viewModel.onRedirectHopsChange("")
+                                        }
+                                    },
                                     modifier = Modifier.size(32.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Clear,
-                                        contentDescription = "Clear URL",
+                                        contentDescription = "Clear Current Tab Input",
                                         tint = NothingGrey,
                                         modifier = Modifier.size(15.dp)
                                     )
@@ -305,41 +373,214 @@ fun ScanScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    OutlinedTextField(
-                        value = urlInput,
-                        onValueChange = { viewModel.onUrlChange(it) },
-                        placeholder = {
-                            Text(
-                                "e.g., https://sbi.bank.in/ or http://phish-site.top",
-                                color = NothingGrey,
-                                fontSize = 12.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("url_input_field"),
-                        textStyle = MaterialTheme.typography.bodyMedium.copy(
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp,
-                            color = NothingWhite
-                        ),
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = NothingWhite,
-                            unfocusedBorderColor = NothingBorder,
-                            focusedContainerColor = NothingSurfaceElevated,
-                            unfocusedContainerColor = NothingSurfaceElevated
-                        ),
-                        shape = RoundedCornerShape(14.dp)
+                    // Multimodal Tab Selection Bar
+                    MultimodalInputTabsBar(
+                        activeTab = activeInputTab,
+                        onTabSelected = { viewModel.setActiveInputTab(it) }
                     )
 
-                    // Real-Time Live URL Structure Dissector
-                    if (urlInput.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        RealtimeUrlDissector(rawUrl = urlInput)
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Input field matching active tab
+                    when (activeInputTab) {
+                        0 -> {
+                            // Target URL Input
+                            OutlinedTextField(
+                                value = urlInput,
+                                onValueChange = { viewModel.onUrlChange(it) },
+                                placeholder = {
+                                    Text(
+                                        "e.g., https://sbi.bank.in/ or http://phish-site.top",
+                                        color = NothingGrey,
+                                        fontSize = 12.sp,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("url_input_field"),
+                                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 12.sp,
+                                    color = NothingWhite
+                                ),
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = NothingWhite,
+                                    unfocusedBorderColor = NothingBorder,
+                                    focusedContainerColor = NothingSurfaceElevated,
+                                    unfocusedContainerColor = NothingSurfaceElevated
+                                ),
+                                shape = RoundedCornerShape(14.dp)
+                            )
+
+                            // Real-Time Live URL Structure Dissector
+                            if (urlInput.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                RealtimeUrlDissector(rawUrl = urlInput)
+                            }
+                        }
+
+                        1 -> {
+                            // Quishing QR Payload Input
+                            Column {
+                                OutlinedTextField(
+                                    value = qrPayloadInput,
+                                    onValueChange = { viewModel.onQrPayloadChange(it) },
+                                    placeholder = {
+                                        Text(
+                                            "Paste decoded QR code URL or payload string (e.g., https://parking-fee.xyz/pay or tel:/wifi:)...",
+                                            color = NothingGrey,
+                                            fontSize = 11.sp,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(90.dp),
+                                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = 12.sp,
+                                        color = NothingWhite
+                                    ),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = NothingWhite,
+                                        unfocusedBorderColor = NothingBorder,
+                                        focusedContainerColor = NothingSurfaceElevated,
+                                        unfocusedContainerColor = NothingSurfaceElevated
+                                    ),
+                                    shape = RoundedCornerShape(14.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "ℹ Quishing URLs will automatically synchronize into Target URL for multi-layer inspection.",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 9.sp,
+                                    color = NothingGrey
+                                )
+                            }
+                        }
+
+                        2 -> {
+                            // HTML Webpage Code Input
+                            Column {
+                                OutlinedTextField(
+                                    value = htmlInput,
+                                    onValueChange = { viewModel.onHtmlChange(it) },
+                                    placeholder = {
+                                        Text(
+                                            "Paste HTML code snippet: <form action='http://phish.net/login.php'><input type='password'>...",
+                                            color = NothingGrey,
+                                            fontSize = 11.sp,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(110.dp),
+                                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = 11.sp,
+                                        color = NothingLightGrey
+                                    ),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = NothingWhite,
+                                        unfocusedBorderColor = NothingBorder,
+                                        focusedContainerColor = NothingSurfaceElevated,
+                                        unfocusedContainerColor = NothingSurfaceElevated
+                                    ),
+                                    shape = RoundedCornerShape(14.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "ℹ Evaluates external form actions, password fields, deceptive titles, and hidden elements.",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 9.sp,
+                                    color = NothingGrey
+                                )
+                            }
+                        }
+
+                        3 -> {
+                            // Screenshot OCR Clues Input
+                            Column {
+                                OutlinedTextField(
+                                    value = screenshotCluesInput,
+                                    onValueChange = { viewModel.onScreenshotCluesChange(it) },
+                                    placeholder = {
+                                        Text(
+                                            "Paste OCR text from screenshot: e.g. 'Windows Defender Alert: Call Support 1-800-XXX' or brand logos...",
+                                            color = NothingGrey,
+                                            fontSize = 11.sp,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(90.dp),
+                                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                        fontSize = 12.sp,
+                                        color = NothingLightGrey
+                                    ),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = NothingWhite,
+                                        unfocusedBorderColor = NothingBorder,
+                                        focusedContainerColor = NothingSurfaceElevated,
+                                        unfocusedContainerColor = NothingSurfaceElevated
+                                    ),
+                                    shape = RoundedCornerShape(14.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "ℹ Detects scareware prompts, fake system crash dialogs, and visual brand mismatches.",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 9.sp,
+                                    color = NothingGrey
+                                )
+                            }
+                        }
+
+                        4 -> {
+                            // Redirect Chain Hops Input
+                            Column {
+                                OutlinedTextField(
+                                    value = redirectHopsInput,
+                                    onValueChange = { viewModel.onRedirectHopsChange(it) },
+                                    placeholder = {
+                                        Text(
+                                            "Paste redirect chain URLs line by line:\nhttp://bit.ly/xyz\nhttp://t.co/abc\nhttp://malicious.top",
+                                            color = NothingGrey,
+                                            fontSize = 11.sp,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(100.dp),
+                                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = 11.sp,
+                                        color = NothingWhite
+                                    ),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = NothingWhite,
+                                        unfocusedBorderColor = NothingBorder,
+                                        focusedContainerColor = NothingSurfaceElevated,
+                                        unfocusedContainerColor = NothingSurfaceElevated
+                                    ),
+                                    shape = RoundedCornerShape(14.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "ℹ Inspects open redirects, URL shortener chains, and domain hopping cloaks.",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 9.sp,
+                                    color = NothingGrey
+                                )
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -597,6 +838,14 @@ fun ScanScreen(
                 }
             }
 
+            // Actionable Recommendation Banner Card
+            item {
+                ActionableRecommendationCard(
+                    status = result.status,
+                    recommendation = result.recommendation
+                )
+            }
+
             // User Explanation Card
             item {
                 Card(
@@ -638,26 +887,127 @@ fun ScanScreen(
                 }
             }
 
-            // 4-Layer Breakdown Section
+            // Multimodal Evidence & Heuristics Breakdown Card
             item {
-                Column {
-                    NothingSectionHeader(
-                        tag = "// 01",
-                        title = "MULTI-LAYER SCAN TELEMETRY"
-                    )
+                MultimodalEvidenceListCard(
+                    evidenceList = result.evidenceList
+                )
+            }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+            // Security Audit Report Export & Reset Actions Card
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, NothingBorder, RoundedCornerShape(20.dp)),
+                    colors = CardDefaults.cardColors(containerColor = NothingSurface),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    val report = viewModel.generateSecurityReport(result)
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("NoPhish Security Audit Report", report)
+                                    clipboard.setPrimaryClip(clip)
+                                    Toast.makeText(context, "Audit Report copied to clipboard", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = NothingWhite,
+                                    contentColor = NothingBlack
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Share,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "EXPORT REPORT",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
 
-                    LayerBreakdownSection(
-                        breakdown = result.analysisBreakdown,
-                        telemetry = result.engineTelemetry
-                    )
+                            OutlinedButton(
+                                onClick = {
+                                    viewModel.onUrlChange("")
+                                    viewModel.onQrPayloadChange("")
+                                    viewModel.onHtmlChange("")
+                                    viewModel.onScreenshotCluesChange("")
+                                    viewModel.onRedirectHopsChange("")
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = NothingWhite
+                                ),
+                                border = BorderStroke(1.dp, NothingBorder)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = NothingWhite
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "NEW SCAN",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NothingWhite
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
-            // Raw JSON Inspector Card
+            // 9-Layer Breakdown Section (Visible in Research Mode)
+            if (isResearchMode) {
+                item {
+                    Column {
+                        NothingSectionHeader(
+                            tag = "// 01",
+                            title = "9-LAYER SCAN TELEMETRY"
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        LayerBreakdownSection(
+                            breakdown = result.analysisBreakdown,
+                            telemetry = result.engineTelemetry
+                        )
+                    }
+                }
+
+                // Raw JSON Inspector Card
+                item {
+                    JsonViewerCard(jsonContent = result.rawJson)
+                }
+            }
+
+            // 20-Case Adversarial Benchmark Suite
             item {
-                JsonViewerCard(jsonContent = result.rawJson)
+                AdversarialBenchmarkSuiteCard(
+                    isRunning = isRunningBenchmark,
+                    metrics = benchmarkMetrics,
+                    results = benchmarkResults,
+                    onRunBenchmark = { viewModel.runAdversarialBenchmark() }
+                )
             }
         } else if (!isScanning) {
             // 1. SCAN ENGINE CALIBRATION & SENSITIVITY CONFIGURATOR (Tappable Sub-Engine Toggles)
@@ -731,6 +1081,16 @@ fun ScanScreen(
 
                     EmergencyIncidentResponseCard()
                 }
+            }
+
+            // 6. 20-CASE ADVERSARIAL BENCHMARK SUITE
+            item {
+                AdversarialBenchmarkSuiteCard(
+                    isRunning = isRunningBenchmark,
+                    metrics = benchmarkMetrics,
+                    results = benchmarkResults,
+                    onRunBenchmark = { viewModel.runAdversarialBenchmark() }
+                )
             }
         }
     }
@@ -1981,6 +2341,585 @@ fun NothingBentoStatTile(
                 letterSpacing = (-0.5).sp,
                 color = valueColor
             )
+        }
+    }
+}
+
+fun getEvidenceSeverityColor(severity: EvidenceSeverity): Color = when (severity) {
+    EvidenceSeverity.CRITICAL -> Color(0xFFE53935)
+    EvidenceSeverity.HIGH -> Color(0xFFFF5722)
+    EvidenceSeverity.MEDIUM -> Color(0xFFFFB300)
+    EvidenceSeverity.LOW -> Color(0xFF43A047)
+    EvidenceSeverity.NEUTRAL -> Color(0xFF9E9E9E)
+}
+
+@Composable
+fun UserResearchModeToggleBar(
+    isResearchMode: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .border(1.dp, if (isResearchMode) NothingWhite else NothingBorder, RoundedCornerShape(18.dp)),
+        colors = CardDefaults.cardColors(containerColor = NothingSurface),
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(if (isResearchMode) NothingRed else StatusSafe)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = if (isResearchMode) "RESEARCH CONSOLE // ACTIVE" else "EXPLAINABLE USER MODE",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = NothingWhite
+                    )
+                    Text(
+                        text = if (isResearchMode) "9-Layer Telemetry, Shannon Entropy & RAG" else "Plain-English Evidence, Severity & Actionable Guidance",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 9.sp,
+                        color = NothingGrey
+                    )
+                }
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = if (isResearchMode) "RESEARCH" else "USER",
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isResearchMode) NothingRed else StatusSafe
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Switch(
+                    checked = isResearchMode,
+                    onCheckedChange = { onToggle() },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = NothingBlack,
+                        checkedTrackColor = NothingWhite,
+                        uncheckedThumbColor = NothingWhite,
+                        uncheckedTrackColor = NothingSurfaceElevated,
+                        uncheckedBorderColor = NothingBorder
+                    )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MultimodalInputTabsBar(
+    activeTab: Int,
+    onTabSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val tabs = listOf(
+        Pair("URL", Icons.Filled.Language),
+        Pair("QUISHING", Icons.Filled.QrCode),
+        Pair("HTML CODE", Icons.Filled.Code),
+        Pair("SCREENSHOT", Icons.Filled.Image),
+        Pair("REDIRECTS", Icons.Filled.AltRoute)
+    )
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        tabs.forEachIndexed { index, (label, icon) ->
+            val isSelected = activeTab == index
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (isSelected) NothingWhite else NothingSurfaceElevated)
+                    .border(1.dp, if (isSelected) NothingWhite else NothingBorderSubtle, RoundedCornerShape(10.dp))
+                    .clickable { onTabSelected(index) }
+                    .padding(horizontal = 10.dp, vertical = 7.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        tint = if (isSelected) NothingBlack else NothingGrey,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = label,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSelected) NothingBlack else NothingWhite
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ActionableRecommendationCard(
+    status: String,
+    recommendation: String,
+    modifier: Modifier = Modifier
+) {
+    val isDanger = status.contains("PHISHING", ignoreCase = true) ||
+            status.contains("BLOCK", ignoreCase = true) ||
+            status.contains("HIGH", ignoreCase = true)
+    val isSuspicious = status.contains("SUSP", ignoreCase = true)
+
+    val containerColor = when {
+        isDanger -> Color(0xFF2B0B0B)
+        isSuspicious -> Color(0xFF261C08)
+        else -> Color(0xFF092011)
+    }
+    val borderColor = when {
+        isDanger -> StatusPhishingBorder
+        isSuspicious -> StatusSuspiciousBorder
+        else -> StatusSafeBorder
+    }
+    val accentColor = when {
+        isDanger -> NothingRed
+        isSuspicious -> StatusSuspicious
+        else -> StatusSafe
+    }
+    val titleText = when {
+        isDanger -> "CRITICAL ACTION // DO NOT INTERACT"
+        isSuspicious -> "CAUTION // SECONDARY VERIFICATION REQUIRED"
+        else -> "VERIFIED LOW RISK // PROCEED WITH CAUTION"
+    }
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .border(1.dp, borderColor, RoundedCornerShape(20.dp)),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = when {
+                        isDanger -> Icons.Filled.ReportProblem
+                        isSuspicious -> Icons.Filled.Info
+                        else -> Icons.Filled.CheckCircle
+                    },
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = titleText,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = accentColor
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = recommendation,
+                fontFamily = FontFamily.SansSerif,
+                fontSize = 13.sp,
+                lineHeight = 19.sp,
+                color = NothingWhite
+            )
+        }
+    }
+}
+
+@Composable
+fun MultimodalEvidenceListCard(
+    evidenceList: List<EvidenceItem>,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .border(1.dp, NothingBorder, RoundedCornerShape(22.dp)),
+        colors = CardDefaults.cardColors(containerColor = NothingSurface),
+        shape = RoundedCornerShape(22.dp)
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(NothingWhite)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "MULTIMODAL EVIDENCE & INDICATORS",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.2.sp,
+                        color = NothingWhite
+                    )
+                }
+                Text(
+                    text = "${evidenceList.size} ARTIFACTS",
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 9.sp,
+                    color = NothingGrey
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (evidenceList.isEmpty()) {
+                Text(
+                    text = "No malicious heuristics or anomaly indicators detected across inspected sources.",
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 11.sp,
+                    color = StatusSafe
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    evidenceList.forEach { item ->
+                        val sevColor = getEvidenceSeverityColor(item.severity)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(NothingBlack)
+                                .border(1.dp, NothingBorderSubtle, RoundedCornerShape(12.dp))
+                                .padding(12.dp)
+                        ) {
+                            Column {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(sevColor.copy(alpha = 0.2f))
+                                                .border(1.dp, sevColor, RoundedCornerShape(4.dp))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = item.severity.name,
+                                                fontFamily = FontFamily.Monospace,
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = sevColor
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "[${item.category}]",
+                                            fontFamily = FontFamily.Monospace,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = NothingGrey
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                Text(
+                                    text = item.title,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = NothingWhite
+                                )
+
+                                if (item.indicator.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(NothingSurfaceElevated)
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = item.indicator,
+                                            fontFamily = FontFamily.Monospace,
+                                            fontSize = 10.sp,
+                                            color = NothingLightGrey
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Text(
+                                    text = item.description,
+                                    fontFamily = FontFamily.SansSerif,
+                                    fontSize = 11.sp,
+                                    lineHeight = 16.sp,
+                                    color = NothingLightGrey
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AdversarialBenchmarkSuiteCard(
+    isRunning: Boolean,
+    metrics: BenchmarkMetrics?,
+    results: List<CaseEvaluationResult>,
+    onRunBenchmark: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .border(1.dp, NothingBorder, RoundedCornerShape(24.dp)),
+        colors = CardDefaults.cardColors(containerColor = NothingSurface),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(NothingRed)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = "20-CASE ADVERSARIAL BENCHMARK",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.2.sp,
+                            color = NothingWhite
+                        )
+                        Text(
+                            text = "Homoglyphs, Leetspeak, Cloaking & Quishing",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 9.sp,
+                            color = NothingGrey
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Button(
+                onClick = { onRunBenchmark() },
+                enabled = !isRunning,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = NothingWhite,
+                    contentColor = NothingBlack,
+                    disabledContainerColor = NothingSurfaceElevated,
+                    disabledContentColor = NothingGrey
+                )
+            ) {
+                if (isRunning) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = NothingBlack,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "EVALUATING 20 ADVERSARIAL CASES...",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.FactCheck,
+                        contentDescription = null,
+                        tint = NothingBlack,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (metrics != null) "RE-RUN BENCHMARK MATRIX" else "RUN ADVERSARIAL BENCHMARK",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            if (metrics != null) {
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // 4-Metrics Bento Grid
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    NothingBentoStatTile(
+                        tag = "ACC",
+                        title = "ACCURACY",
+                        value = "${(metrics.accuracy * 100).toInt()}%",
+                        valueColor = StatusSafe,
+                        modifier = Modifier.weight(1f)
+                    )
+                    NothingBentoStatTile(
+                        tag = "PRC",
+                        title = "PRECISION",
+                        value = "${(metrics.precision * 100).toInt()}%",
+                        valueColor = NothingWhite,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    NothingBentoStatTile(
+                        tag = "REC",
+                        title = "RECALL",
+                        value = "${(metrics.recall * 100).toInt()}%",
+                        valueColor = NothingWhite,
+                        modifier = Modifier.weight(1f)
+                    )
+                    NothingBentoStatTile(
+                        tag = "F1",
+                        title = "F1-SCORE",
+                        value = "%.2f".format(metrics.f1Score),
+                        valueColor = StatusSafe,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "FALSE POSITIVES: ${metrics.falsePositives}  //  FALSE NEGATIVES: ${metrics.falseNegatives}",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (metrics.falsePositives == 0 && metrics.falseNegatives == 0) StatusSafe else NothingRed
+                    )
+
+                    Text(
+                        text = if (isExpanded) "[ HIDE CASES ]" else "[ SHOW 20 CASES ]",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = NothingWhite,
+                        modifier = Modifier.clickable { isExpanded = !isExpanded }
+                    )
+                }
+
+                if (isExpanded) {
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        results.forEachIndexed { idx, res ->
+                            val isCorrect = res.isCorrect
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(NothingBlack)
+                                    .border(1.dp, if (isCorrect) StatusSafeBorder else StatusPhishingBorder, RoundedCornerShape(8.dp))
+                                    .padding(8.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "#${idx + 1} [${res.benchmarkCase.id}] ${res.benchmarkCase.category}",
+                                            fontFamily = FontFamily.Monospace,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = NothingWhite
+                                        )
+                                        Text(
+                                            text = res.benchmarkCase.url,
+                                            fontFamily = FontFamily.Monospace,
+                                            fontSize = 9.sp,
+                                            color = NothingGrey,
+                                            maxLines = 1
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(if (isCorrect) StatusSafe.copy(alpha = 0.2f) else NothingRed.copy(alpha = 0.2f))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = if (isCorrect) "PASS (${res.predictedVerdict})" else "FAIL (${res.predictedVerdict})",
+                                            fontFamily = FontFamily.Monospace,
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isCorrect) StatusSafe else NothingRed
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

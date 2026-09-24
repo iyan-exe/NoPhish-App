@@ -12,6 +12,7 @@ import com.example.data.model.WhitelistEntity
 import com.example.domain.PhishingDetectorEngine
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +38,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _contextInput = MutableStateFlow("")
     val contextInput: StateFlow<String> = _contextInput.asStateFlow()
+
+    // NoPhish 2.0 Multimodal Inputs
+    private val _htmlInput = MutableStateFlow("")
+    val htmlInput: StateFlow<String> = _htmlInput.asStateFlow()
+
+    private val _qrPayloadInput = MutableStateFlow("")
+    val qrPayloadInput: StateFlow<String> = _qrPayloadInput.asStateFlow()
+
+    private val _screenshotCluesInput = MutableStateFlow("")
+    val screenshotCluesInput: StateFlow<String> = _screenshotCluesInput.asStateFlow()
+
+    private val _redirectHopsInput = MutableStateFlow("")
+    val redirectHopsInput: StateFlow<String> = _redirectHopsInput.asStateFlow()
+
+    // User Mode vs Research Mode (Cybersecurity Telemetry Console)
+    private val _isResearchMode = MutableStateFlow(false)
+    val isResearchMode: StateFlow<Boolean> = _isResearchMode.asStateFlow()
+
+    // Active Multimodal Input Mode (0 = URL, 1 = QR / Quishing, 2 = HTML Page, 3 = Screenshot)
+    private val _activeInputTab = MutableStateFlow(0)
+    val activeInputTab: StateFlow<Int> = _activeInputTab.asStateFlow()
+
+    // Adversarial Benchmark State
+    private val _benchmarkMetrics = MutableStateFlow<com.example.domain.BenchmarkMetrics?>(null)
+    val benchmarkMetrics: StateFlow<com.example.domain.BenchmarkMetrics?> = _benchmarkMetrics.asStateFlow()
+
+    private val _benchmarkResults = MutableStateFlow<List<com.example.domain.CaseEvaluationResult>>(emptyList())
+    val benchmarkResults: StateFlow<List<com.example.domain.CaseEvaluationResult>> = _benchmarkResults.asStateFlow()
+
+    private val _isRunningBenchmark = MutableStateFlow(false)
+    val isRunningBenchmark: StateFlow<Boolean> = _isRunningBenchmark.asStateFlow()
 
     // Scan State
     private val _isScanning = MutableStateFlow(false)
@@ -252,6 +284,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _errorMessage.value = null
     }
 
+    fun onHtmlChange(html: String) {
+        _htmlInput.value = html
+    }
+
+    fun onQrPayloadChange(payload: String) {
+        _qrPayloadInput.value = payload
+        val trimmed = payload.trim()
+        if (trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true)) {
+            _urlInput.value = trimmed
+        }
+    }
+
+    fun onScreenshotCluesChange(clues: String) {
+        _screenshotCluesInput.value = clues
+    }
+
+    fun onRedirectHopsChange(hops: String) {
+        _redirectHopsInput.value = hops
+    }
+
+    fun setActiveInputTab(tabIndex: Int) {
+        _activeInputTab.value = tabIndex
+    }
+
+    fun toggleResearchMode() {
+        _isResearchMode.value = !_isResearchMode.value
+    }
+
+    fun setResearchMode(enabled: Boolean) {
+        _isResearchMode.value = enabled
+    }
+
     fun loadPreset(preset: PresetScenario) {
         _urlInput.value = preset.url
         _contextInput.value = preset.contextText
@@ -262,22 +326,67 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun clearInput() {
         _urlInput.value = ""
         _contextInput.value = ""
+        _htmlInput.value = ""
+        _qrPayloadInput.value = ""
+        _screenshotCluesInput.value = ""
+        _redirectHopsInput.value = ""
         _errorMessage.value = null
         _currentResult.value = null
     }
 
+    fun runAdversarialBenchmark() {
+        viewModelScope.launch {
+            _isRunningBenchmark.value = true
+            try {
+                val (metrics, results) = kotlinx.coroutines.withContext(Dispatchers.Default) {
+                    com.example.domain.AdversarialBenchmarkEngine.evaluateAll()
+                }
+                _benchmarkMetrics.value = metrics
+                _benchmarkResults.value = results
+            } catch (e: Exception) {
+                _errorMessage.value = "Benchmark failed: ${e.localizedMessage}"
+            } finally {
+                _isRunningBenchmark.value = false
+            }
+        }
+    }
+
+    fun generateSecurityReport(targetResult: PhishingAnalysisResult? = null): String {
+        val current = targetResult ?: _currentResult.value ?: return "No scan result to export."
+        return com.example.domain.SecurityReportExporter.generateTextReport(current)
+    }
+
     fun analyze() {
-        val url = _urlInput.value.trim()
-        if (url.isBlank()) {
-            _errorMessage.value = "Please enter a valid URL to scan"
+        val targetUrl = when {
+            _urlInput.value.isNotBlank() -> _urlInput.value.trim()
+            _qrPayloadInput.value.isNotBlank() -> _qrPayloadInput.value.trim()
+            else -> ""
+        }
+
+        if (targetUrl.isBlank()) {
+            _errorMessage.value = "Please enter a valid URL or QR payload to scan"
             return
         }
+
+        val redirectUrlsList = if (_redirectHopsInput.value.isNotBlank()) {
+            _redirectHopsInput.value
+                .split("\n", "->", ",")
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+        } else emptyList()
 
         viewModelScope.launch {
             _isScanning.value = true
             _errorMessage.value = null
             try {
-                val result = engine.analyze(url, _contextInput.value)
+                val result = engine.analyze(
+                    url = targetUrl,
+                    contextText = _contextInput.value,
+                    htmlContent = _htmlInput.value,
+                    redirectUrls = redirectUrlsList,
+                    qrPayload = _qrPayloadInput.value.ifBlank { null },
+                    screenshotText = _screenshotCluesInput.value.ifBlank { null }
+                )
                 _currentResult.value = result
 
                 // Save to Room DB

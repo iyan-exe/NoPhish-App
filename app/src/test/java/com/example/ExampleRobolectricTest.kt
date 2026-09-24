@@ -375,11 +375,11 @@ class ExampleRobolectricTest {
     assertEquals("Model checksum must match exactly", checksum, com.example.domain.SupervisedUrlClassifier.MODEL_CHECKSUM)
     assertEquals("Bias must match within 1e-5 tolerance", bias, com.example.domain.SupervisedUrlClassifier.BIAS, 1e-5f)
 
-    assertEquals("Weights dimension must be 24", 24, weightsArray.length())
-    assertEquals("Means dimension must be 24", 24, meansArray.length())
-    assertEquals("Stds dimension must be 24", 24, stdsArray.length())
+    assertEquals("Weights dimension must be 36", 36, weightsArray.length())
+    assertEquals("Means dimension must be 36", 36, meansArray.length())
+    assertEquals("Stds dimension must be 36", 36, stdsArray.length())
 
-    for (i in 0 until 24) {
+    for (i in 0 until 36) {
       val expectedWeight = weightsArray.getDouble(i).toFloat()
       val actualWeight = com.example.domain.SupervisedUrlClassifier.WEIGHTS[i]
       assertEquals("Weight index $i must match", expectedWeight, actualWeight, 1e-5f)
@@ -488,5 +488,62 @@ class ExampleRobolectricTest {
       "Detected threats must report retial transposition",
       result.detectedThreats.any { threat -> threat.contains("retial") && threat.contains("retail") }
     )
+  }
+
+  @Test
+  fun `test subdomain lookalike retaii on onlinesbi sbi with retial login is detected as phishing`() = runBlocking {
+    val db = com.example.data.local.PhishShieldDatabase.getDatabase(ApplicationProvider.getApplicationContext())
+    val engine = PhishingDetectorEngine(db.whitelistDao())
+    val testUrl = "https://retaii.onlinesbi.sbi/retial/login.html"
+
+    val urlAnalysis = UrlStructureAnalyzer.analyze(testUrl)
+    val brandCheck = BrandImpersonationDetector.evaluate(urlAnalysis.cleanHost, "", testUrl)
+
+    println("=== TESTING TEST URL: $testUrl ===")
+    println("subdomain='${urlAnalysis.subdomain}', hasSubdomainLookalike=${urlAnalysis.hasSubdomainLookalike}")
+    println("subdomainLookalikeMatch=${urlAnalysis.subdomainLookalikeMatch}")
+    println("hasPathLookalike=${urlAnalysis.hasPathLookalike}, hasLoginContext=${urlAnalysis.hasLoginContext}")
+    println("isKnownLegitimate=${urlAnalysis.isKnownLegitimate}")
+    println("brandCheck.isImpersonating=${brandCheck.isImpersonating}")
+
+    val result = engine.analyze(testUrl, "")
+    println("FINAL RESULT: status='${result.status}', score=${result.riskScore}")
+    println("THREATS: ${result.detectedThreats}")
+    println("EXPLANATION: ${result.userExplanation}")
+
+    // Must be classified as Phishing
+    assertEquals("Phishing", result.status)
+    assertTrue("Risk score should be >= 65, got ${result.riskScore}", result.riskScore >= 65)
+    assertTrue("Must detect subdomain lookalike", urlAnalysis.hasSubdomainLookalike)
+    assertTrue("Must detect path lookalike", urlAnalysis.hasPathLookalike)
+    assertTrue("Must detect login context", urlAnalysis.hasLoginContext)
+    assertTrue(
+      "Detected threats must report subdomain lookalike",
+      result.detectedThreats.any { it.contains("subdomain", ignoreCase = true) || it.contains("retaii", ignoreCase = true) }
+    )
+  }
+
+  @Test
+  fun `test generic typosquatting detector handles visual lookalikes homoglyphs and transpositions`() {
+    val visual1 = com.example.domain.TyposquattingDetector.detect("retaii")
+    assertNotNull(visual1)
+    assertEquals("retail", visual1?.targetKeyword)
+
+    val trans1 = com.example.domain.TyposquattingDetector.detect("retial")
+    assertNotNull(trans1)
+    assertEquals("retail", trans1?.targetKeyword)
+    assertEquals("Transposition", trans1?.matchType)
+
+    val visual2 = com.example.domain.TyposquattingDetector.detect("paypa1")
+    assertNotNull(visual2)
+    assertEquals("paypal", visual2?.targetKeyword)
+
+    val sub1 = com.example.domain.TyposquattingDetector.detect("amaz0n")
+    assertNotNull(sub1)
+    assertEquals("amazon", sub1?.targetKeyword)
+
+    val exact = com.example.domain.TyposquattingDetector.detect("retail")
+    // Exact match is not a typosquat
+    assertEquals(null, exact)
   }
 }

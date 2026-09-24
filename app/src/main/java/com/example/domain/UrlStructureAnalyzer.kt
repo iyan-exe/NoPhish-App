@@ -6,6 +6,7 @@ import kotlin.math.log2
 data class UrlStructureAnalysisResult(
     val cleanHost: String,
     val rootDomain: String,
+    val subdomain: String = "",
     val scheme: String,
     val path: String,
     val query: String,
@@ -22,10 +23,20 @@ data class UrlStructureAnalysisResult(
     val hasPhishingKeywords: Boolean,
     val highEntropy: Boolean,
     val isPunycode: Boolean,
+    val hasSubdomainLookalike: Boolean = false,
+    val subdomainLookalikeMatch: TyposquatMatch? = null,
     val hasPathObfuscation: Boolean = false,
     val hasPathLookalike: Boolean = false,
     val hasOpenRedirect: Boolean = false,
     val hasSuspiciousPayload: Boolean = false,
+    val hasLoginContext: Boolean = false,
+    val originalUrl: String = "",
+    val normalizedUrl: String = "",
+    val decodedUrl: String = "",
+    val hasPathAnomaly: Boolean = false,
+    val pathAnomalyScore: Int = 0,
+    val pathAnomalies: List<PathSegmentAnomaly> = emptyList(),
+    val queryAnalysis: QueryAnalysisResult = QueryAnalysisResult(),
     val detectedThreats: List<String>,
     val explanation: String
 )
@@ -95,7 +106,8 @@ object UrlStructureAnalyzer {
         "content", "contents", "section", "sections", "theme", "themes", "plugin", "plugins",
         "shop", "shopping", "store", "stores", "pricing", "plan", "plans", "price",
         "book", "books", "guide", "guides", "tutorial", "tutorials", "code", "tools",
-        "general", "public", "common", "global", "default", "landing"
+        "general", "public", "common", "global", "default", "landing",
+        "activity", "activities", "action", "actions", "dashboard", "portal", "profile", "session", "day"
     )
 
     private val PATH_HOMOGLYPH_MAP = mapOf(
@@ -106,11 +118,18 @@ object UrlStructureAnalyzer {
     )
 
     fun analyze(rawUrl: String): UrlStructureAnalysisResult {
+        val originalUrl = rawUrl
         val trimmed = rawUrl.trim()
         val normalized = if (!trimmed.startsWith("http://", ignoreCase = true) && !trimmed.startsWith("https://", ignoreCase = true)) {
             "https://$trimmed"
         } else {
             trimmed
+        }
+        val normalizedUrl = normalized
+        val decodedUrl = try {
+            java.net.URLDecoder.decode(normalized, "UTF-8")
+        } catch (e: Exception) {
+            normalized
         }
 
         val threats = mutableListOf<String>()
@@ -149,7 +168,25 @@ object UrlStructureAnalyzer {
             }
 
             val rootDomain = DomainUtils.extractRootDomain(host)
-            isKnownLegit = DomainUtils.isKnownTopLegitimateDomain(host)
+            val subdomain = DomainUtils.extractSubdomain(host)
+            var hasSubdomainLookalike = false
+            var subdomainLookalikeMatch: TyposquatMatch? = null
+
+            // Subdomain typosquatting / lookalike check
+            if (subdomain.isNotBlank()) {
+                val subLabels = subdomain.split(".", "-").filter { it.isNotBlank() }
+                for (label in subLabels) {
+                    val match = TyposquattingDetector.detect(label)
+                    if (match != null) {
+                        hasSubdomainLookalike = true
+                        subdomainLookalikeMatch = match
+                        threats.add("Suspicious subdomain lookalike / typosquat detected: '$label' imitates '${match.targetKeyword}' (${match.description})")
+                        break
+                    }
+                }
+            }
+
+            isKnownLegit = DomainUtils.isKnownTopLegitimateDomain(host) && !hasSubdomainLookalike
 
             // 1. Check for '@' symbol redirection trick
             if (trimmed.contains("@")) {
@@ -247,11 +284,13 @@ object UrlStructureAnalyzer {
                 threats.addAll(pathObfuscations)
             }
 
-            // 14. Suspicious Case-Sensitive Lookalike Path Manipulation (e.g. retaiI with uppercase 'I' spoofing retail)
+            // 14. Suspicious Case-Sensitive Lookalike & Generalized Path Anomaly Analysis
+            val pathResult = PathAnomalyDetector.analyze(path, query, host, isKnownLegit)
             val pathLookalikes = detectPathLookalike(path, query)
-            if (pathLookalikes.isNotEmpty()) {
+            if (pathLookalikes.isNotEmpty() || pathResult.hasPathAnomaly) {
                 hasPathLookalike = true
                 threats.addAll(pathLookalikes)
+                threats.addAll(pathResult.detectedThreats)
             }
 
             // 15. Open Redirect parameter detection (never blindly trusting initial host)
@@ -274,11 +313,24 @@ object UrlStructureAnalyzer {
                 threats.addAll(traversalThreats)
             }
 
+            // 18. Sensitive Authentication / Login Context check in path/query
+            val cleanPathLower = "$path $query".lowercase()
+            val hasLoginContext = listOf(
+                "login", "signin", "sign-in", "signon", "auth", "authenticate",
+                "kyc", "verify", "verification", "otp", "password", "credential",
+                "account", "banking", "retail", "personal", "corporate"
+            ).any { cleanPathLower.contains(it) }
+
             val explanation = buildString {
                 if (hasPathObfuscation) {
                     append("CRITICAL: Deceptive path obfuscation/leetspeak detected in URL endpoint. ")
                 }
-                if (hasPathLookalike) {
+                if (hasSubdomainLookalike) {
+                    append("CRITICAL: Suspicious typosquatted / lookalike subdomain ('$subdomain') detected. ")
+                }
+                if (pathResult.hasPathAnomaly) {
+                    append("WARNING: URL path anomaly detected: ${pathResult.explanation} ")
+                } else if (hasPathLookalike) {
                     append("WARNING: Suspicious lookalike path or typo detected (e.g., character transposition or visual imitation). ")
                 }
                 if (hasOpenRedirect) {
@@ -294,8 +346,8 @@ object UrlStructureAnalyzer {
                 } else if (threats.isEmpty()) {
                     append("Domain '$host' has standard structure with no typical manipulation techniques detected.")
                 } else {
-                    append("URL '$host$path' exhibits ${threats.size} structural risk factors: ")
-                    append(threats.joinToString("; "))
+                    append("URL '$host$path' exhibits ${threats.distinct().size} structural risk factors: ")
+                    append(threats.distinct().joinToString("; "))
                     append(".")
                 }
             }
@@ -303,6 +355,7 @@ object UrlStructureAnalyzer {
             return UrlStructureAnalysisResult(
                 cleanHost = host,
                 rootDomain = rootDomain,
+                subdomain = subdomain,
                 scheme = scheme,
                 path = path,
                 query = query,
@@ -319,11 +372,21 @@ object UrlStructureAnalyzer {
                 hasPhishingKeywords = hasPhishingKw,
                 highEntropy = highEntropy,
                 isPunycode = isPunycode,
+                hasSubdomainLookalike = hasSubdomainLookalike,
+                subdomainLookalikeMatch = subdomainLookalikeMatch,
                 hasPathObfuscation = hasPathObfuscation,
                 hasPathLookalike = hasPathLookalike,
                 hasOpenRedirect = hasOpenRedirect,
                 hasSuspiciousPayload = hasSuspiciousPayload,
-                detectedThreats = threats,
+                hasLoginContext = hasLoginContext,
+                originalUrl = originalUrl,
+                normalizedUrl = normalizedUrl,
+                decodedUrl = decodedUrl,
+                hasPathAnomaly = pathResult.hasPathAnomaly,
+                pathAnomalyScore = pathResult.pathAnomalyScore,
+                pathAnomalies = pathResult.anomalies,
+                queryAnalysis = pathResult.queryAnalysis,
+                detectedThreats = threats.distinct(),
                 explanation = explanation
             )
 
@@ -351,6 +414,13 @@ object UrlStructureAnalyzer {
                 hasPathLookalike = false,
                 hasOpenRedirect = false,
                 hasSuspiciousPayload = false,
+                originalUrl = rawUrl,
+                normalizedUrl = rawUrl,
+                decodedUrl = rawUrl,
+                hasPathAnomaly = false,
+                pathAnomalyScore = 0,
+                pathAnomalies = emptyList(),
+                queryAnalysis = QueryAnalysisResult(),
                 detectedThreats = listOf("Malformed URL syntax"),
                 explanation = "Malformed URL syntax could not be parsed."
             )
@@ -548,6 +618,22 @@ object UrlStructureAnalyzer {
 
             // 3. If segment contains leetspeak digits/symbols, it belongs to detectPathObfuscation, skip here
             if (lower.any { it.isDigit() || it == '@' || it == '$' || it == '!' }) {
+                continue
+            }
+
+            // 4. Unified Typosquatting / Lookalike Engine check
+            val typoMatch = TyposquattingDetector.detect(segment, PATH_LOOKALIKE_KEYWORDS)
+            if (typoMatch != null) {
+                when (typoMatch.matchType) {
+                    "Transposition" -> threats.add("Suspicious path transposition typo detected: segment '$segment' appears to imitate '${typoMatch.targetKeyword}' (adjacent characters swapped)")
+                    "VisualLookalike" -> threats.add("Suspicious visual lookalike path manipulation: segment '$segment' appears to imitate '${typoMatch.targetKeyword}' (${typoMatch.description})")
+                    "Homoglyph" -> threats.add("Unicode homoglyph character mixing in URL path segment ('$segment' spoofing '${typoMatch.targetKeyword}')")
+                    "RepeatedCharacter" -> threats.add("Suspicious repeated-character path manipulation: segment '$segment' appears to imitate '${typoMatch.targetKeyword}'")
+                    "CharacterInsertion" -> threats.add("Suspicious path typo detected: segment '$segment' appears to imitate '${typoMatch.targetKeyword}' (single character insertion)")
+                    "CharacterOmission" -> threats.add("Suspicious path typo detected: segment '$segment' appears to imitate '${typoMatch.targetKeyword}' (single character omission)")
+                    "CharacterSubstitution" -> threats.add("Suspicious path typo detected: segment '$segment' appears to imitate '${typoMatch.targetKeyword}' (single character substitution)")
+                    else -> threats.add("Suspicious path lookalike detected: segment '$segment' is suspiciously similar to '${typoMatch.targetKeyword}'")
+                }
                 continue
             }
 

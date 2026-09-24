@@ -1,50 +1,50 @@
 {
   "model_metadata_version": "1.1.0",
   "model_version": "v1.1.0-stratified",
-  "model_checksum": "4cdf75ebeca34bf0",
-  "model_architecture": "L2-Regularized Logistic Regression (24 Normalized Features)",
+  "model_checksum": "e50e043176d569d5",
+  "model_architecture": "L2-Regularized Logistic Regression (36 Normalized Features)",
   "decision_threshold": 0.5,
   "normalization_policy": "Training-split statistics only (means and stds computed strictly on 70% train split)",
   "dataset_split_summary": {
-    "total_samples": 187,
-    "train_samples": 131,
-    "val_samples": 28,
-    "test_samples": 28,
+    "total_samples": 214,
+    "train_samples": 152,
+    "val_samples": 29,
+    "test_samples": 33,
     "train_distribution": {
-      "legitimate": 69,
-      "phishing": 62
+      "legitimate": 80,
+      "phishing": 72
     },
     "val_distribution": {
-      "legitimate": 15,
-      "phishing": 13
+      "legitimate": 14,
+      "phishing": 15
     },
     "test_distribution": {
-      "legitimate": 15,
-      "phishing": 13
+      "legitimate": 19,
+      "phishing": 14
     },
     "stratification_key": "registrable_domain",
     "leakage_verification": "Verified 0 domain and URL overlap across train/val/test"
   },
   "held_out_test_metrics": {
-    "accuracy": 100.0,
-    "precision": 1.0,
+    "accuracy": 96.9697,
+    "precision": 0.9333,
     "recall": 1.0,
-    "f1": 1.0,
-    "roc_auc": 1.0,
+    "f1": 0.9655,
+    "roc_auc": 0.9962,
     "confusion_matrix": {
-      "tp": 13,
-      "fp": 0,
-      "tn": 15,
+      "tp": 14,
+      "fp": 1,
+      "tn": 18,
       "fn": 0
     }
   },
   "dataset_provenance": [
     {
-      "url": "https://usps.com/manage/",
+      "url": "https://www.google.com/",
       "label": 0,
-      "category": "Official Logistics & Postal Service",
+      "category": "Official Tech Infrastructure & Cloud",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "usps.com",
+      "registrable_domain": "google.com",
       "partition": "train"
     },
     {
@@ -56,43 +56,179 @@
       "partition": "train"
     },
     {
-      "url": "https://paytmbank.com/",
+      "url": "https://www.hdfcbank.com/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (India)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "hdfcbank.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://www.icicibank.com/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (India)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "icicibank.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://netbanking.hdfcbank.com/netbanking/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (India)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "hdfcbank.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://www.amazon.com/dp/B08N5WRWNW",
       "label": 0,
       "category": "Verified Legitimate Web Destination",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "paytmbank.com",
+      "registrable_domain": "amazon.com",
       "partition": "train"
     },
     {
-      "url": "https://bankofamerica.com/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (Global)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "bankofamerica.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://gitlab.com/explore",
+      "url": "https://apple.com/iphone-15-pro/",
       "label": 0,
       "category": "Official Tech Infrastructure & Cloud",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "gitlab.com",
+      "registrable_domain": "apple.com",
       "partition": "train"
     },
     {
-      "url": "https://dropbox.com/home",
+      "url": "https://microsoft.com/en-us/windows",
       "label": 0,
-      "category": "Verified Legitimate Web Destination",
+      "category": "Official Tech Infrastructure & Cloud",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "dropbox.com",
+      "registrable_domain": "microsoft.com",
       "partition": "train"
     },
     {
-      "url": "https://airtel.in/bank",
+      "url": "https://www.reddit.com/r/cybersecurity/",
       "label": 0,
       "category": "Verified Legitimate Web Destination",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "airtel.in",
+      "registrable_domain": "reddit.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://developer.android.com/jetpack/compose",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "android.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://indiapost.gov.in/vas/pages/indiaposthome.aspx",
+      "label": 0,
+      "category": "Official Logistics & Postal Service",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "indiapost.gov.in",
+      "partition": "train"
+    },
+    {
+      "url": "https://npci.org.in/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (India)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "npci.org.in",
+      "partition": "train"
+    },
+    {
+      "url": "https://www.paypal.com/signin",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (Global)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "paypal.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://stripe.com/docs/api",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (Global)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "stripe.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://www.netflix.com/browse",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "netflix.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://spotify.com/us/premium/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "spotify.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://linkedin.com/feed/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "linkedin.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://twitter.com/home",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "twitter.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://youtube.com/watch?v=dQw4w9WgXcQ",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "youtube.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://cloudflare.com/learning/security/",
+      "label": 0,
+      "category": "Official Tech Infrastructure & Cloud",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "cloudflare.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://digitalocean.com/products/droplets",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "digitalocean.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://bbc.com/news/world",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "bbc.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://cnn.com/world",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "cnn.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://nytimes.com/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "nytimes.com",
       "partition": "train"
     },
     {
@@ -101,22 +237,6 @@
       "category": "Verified Legitimate Web Destination",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
       "registrable_domain": "reuters.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://capitalone.com/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "capitalone.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://openai.com/research",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "openai.com",
       "partition": "train"
     },
     {
@@ -136,11 +256,75 @@
       "partition": "train"
     },
     {
-      "url": "https://myntra.com/men-shirts",
+      "url": "https://axisbank.com/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (India)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "axisbank.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://kotak.com/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (India)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "kotak.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://canarabank.com/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (India)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "canarabank.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://unionbankofindia.co.in/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (India)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "unionbankofindia.co.in",
+      "partition": "train"
+    },
+    {
+      "url": "https://indianbank.in/",
       "label": 0,
       "category": "Verified Legitimate Web Destination",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "myntra.com",
+      "registrable_domain": "indianbank.in",
+      "partition": "train"
+    },
+    {
+      "url": "https://federalbank.co.in/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "federalbank.co.in",
+      "partition": "train"
+    },
+    {
+      "url": "https://paytmbank.com/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "paytmbank.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://drive.google.com/drive/my-drive",
+      "label": 0,
+      "category": "Official Tech Infrastructure & Cloud",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "google.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://figma.com/@community",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "figma.com",
       "partition": "train"
     },
     {
@@ -149,6 +333,102 @@
       "category": "Verified Legitimate Web Destination",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
       "registrable_domain": "slack.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://zoom.us/join",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "zoom.us",
+      "partition": "train"
+    },
+    {
+      "url": "https://walmart.com/ip/item/98765",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "walmart.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://target.com/p/item",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "target.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://myntra.com/men-shirts",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "myntra.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://fedex.com/en-us/tracking.html",
+      "label": 0,
+      "category": "Official Logistics & Postal Service",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "fedex.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://ups.com/track",
+      "label": 0,
+      "category": "Official Logistics & Postal Service",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "ups.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://royalmail.com/track-your-item",
+      "label": 0,
+      "category": "Official Logistics & Postal Service",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "royalmail.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://booking.com/hotel/us/sample",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "booking.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://airbnb.com/rooms/123456",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "airbnb.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://openai.com/research",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "openai.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://huggingface.co/models",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "huggingface.co",
+      "partition": "train"
+    },
+    {
+      "url": "https://arxiv.org/abs/2301.00000",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "arxiv.org",
       "partition": "train"
     },
     {
@@ -168,283 +448,11 @@
       "partition": "train"
     },
     {
-      "url": "https://en.wikipedia.org/wiki/Phishing",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "wikipedia.org",
-      "partition": "train"
-    },
-    {
-      "url": "https://medium.com/@author/story",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "medium.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://indianbank.in/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "indianbank.in",
-      "partition": "train"
-    },
-    {
-      "url": "https://pypi.org/project/requests/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "pypi.org",
-      "partition": "train"
-    },
-    {
-      "url": "https://figma.com/@community",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "figma.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://npci.org.in/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (India)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "npci.org.in",
-      "partition": "train"
-    },
-    {
-      "url": "https://sbicard.com/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (India)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "sbicard.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://kotak.com/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (India)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "kotak.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://github.com/torvalds/linux",
+      "url": "https://docker.com/products/docker-desktop",
       "label": 0,
       "category": "Official Tech Infrastructure & Cloud",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "github.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://twitter.com/home",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "twitter.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://www.reddit.com/r/cybersecurity/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "reddit.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://yesbank.in/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "yesbank.in",
-      "partition": "train"
-    },
-    {
-      "url": "https://bank.sbi/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (India)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "bank.sbi",
-      "partition": "train"
-    },
-    {
-      "url": "https://huggingface.co/models",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "huggingface.co",
-      "partition": "train"
-    },
-    {
-      "url": "https://stackoverflow.com/questions/tagged/kotlin",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "stackoverflow.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://target.com/p/item",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "target.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://linkedin.com/feed/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "linkedin.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://irctc.co.in/nget/train-search",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "irctc.co.in",
-      "partition": "train"
-    },
-    {
-      "url": "https://indiapost.gov.in/vas/pages/indiaposthome.aspx",
-      "label": 0,
-      "category": "Official Logistics & Postal Service",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "indiapost.gov.in",
-      "partition": "train"
-    },
-    {
-      "url": "https://zellepay.com/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "zellepay.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://microsoft.com/en-us/windows",
-      "label": 0,
-      "category": "Official Tech Infrastructure & Cloud",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "microsoft.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://ups.com/track",
-      "label": 0,
-      "category": "Official Logistics & Postal Service",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "ups.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://bbc.com/news/world",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "bbc.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://hsbc.com/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "hsbc.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://digitalocean.com/products/droplets",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "digitalocean.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://idbibank.in/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "idbibank.in",
-      "partition": "train"
-    },
-    {
-      "url": "https://idfcfirstbank.com/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "idfcfirstbank.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://citi.com/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (Global)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "citi.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://stripe.com/docs/api",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (Global)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "stripe.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://royalmail.com/track-your-item",
-      "label": 0,
-      "category": "Official Logistics & Postal Service",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "royalmail.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://npmjs.com/package/express",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "npmjs.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://axisbank.com/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (India)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "axisbank.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://www.google.com/",
-      "label": 0,
-      "category": "Official Tech Infrastructure & Cloud",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "google.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://drive.google.com/drive/my-drive",
-      "label": 0,
-      "category": "Official Tech Infrastructure & Cloud",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "google.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://substacks.com/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "substacks.com",
+      "registrable_domain": "docker.com",
       "partition": "train"
     },
     {
@@ -456,75 +464,11 @@
       "partition": "train"
     },
     {
-      "url": "https://www.amazon.com/dp/B08N5WRWNW",
+      "url": "https://npmjs.com/package/express",
       "label": 0,
       "category": "Verified Legitimate Web Destination",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "amazon.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://cash.app/$cashtag",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "cash.app",
-      "partition": "train"
-    },
-    {
-      "url": "https://www.icicibank.com/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (India)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "icicibank.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://rbi.org.in/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (India)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "rbi.org.in",
-      "partition": "train"
-    },
-    {
-      "url": "https://dhl.com/global-en/home/tracking.html",
-      "label": 0,
-      "category": "Official Logistics & Postal Service",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "dhl.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://onlinesbi.com/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (India)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "onlinesbi.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://discover.com/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "discover.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://apple.com/iphone-15-pro/",
-      "label": 0,
-      "category": "Official Tech Infrastructure & Cloud",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "apple.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://arxiv.org/abs/2301.00000",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "arxiv.org",
+      "registrable_domain": "npmjs.com",
       "partition": "train"
     },
     {
@@ -536,51 +480,35 @@
       "partition": "train"
     },
     {
-      "url": "https://maven.org/",
+      "url": "https://cash.app/$cashtag",
       "label": 0,
       "category": "Verified Legitimate Web Destination",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "maven.org",
+      "registrable_domain": "cash.app",
       "partition": "train"
     },
     {
-      "url": "https://www.paypal.com/signin",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (Global)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "paypal.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://wellsfargo.com/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (Global)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "wellsfargo.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://cloudflare.com/learning/security/",
-      "label": 0,
-      "category": "Official Tech Infrastructure & Cloud",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "cloudflare.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://sbimf.com/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (India)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "sbimf.com",
-      "partition": "train"
-    },
-    {
-      "url": "https://ippbonline.com/",
+      "url": "https://venmo.com/",
       "label": 0,
       "category": "Verified Legitimate Web Destination",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "ippbonline.com",
+      "registrable_domain": "venmo.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://citi.com/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (Global)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "citi.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://discover.com/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "discover.com",
       "partition": "train"
     },
     {
@@ -592,211 +520,171 @@
       "partition": "train"
     },
     {
-      "url": "http://paypal-account-security-alert.top/signin",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
+      "url": "https://pnc.com/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "paypal-account-security-alert.top",
+      "registrable_domain": "pnc.com",
       "partition": "train"
     },
     {
-      "url": "http://pnb-netbanking-blocked-reactivate.xyz/login",
+      "url": "https://hsbc.com/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "hsbc.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://revolut.com/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (Global)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "revolut.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://wise.com/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (Global)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "wise.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://sbi.co.in/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (India)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "sbi.co.in",
+      "partition": "train"
+    },
+    {
+      "url": "https://sbimf.com/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (India)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "sbimf.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://onlinesbi.com/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (India)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "onlinesbi.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://bank.sbi/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (India)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "bank.sbi",
+      "partition": "train"
+    },
+    {
+      "url": "https://yono.sbi/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (India)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "yono.sbi",
+      "partition": "train"
+    },
+    {
+      "url": "https://www.instagram.com/reel/DdWd4Wjyh8D/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "instagram.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://www.instagram.com/explore/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "instagram.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://www.instagram.com/accounts/login/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "instagram.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://retail.onlinesbi.sbi/retail/userprofile.htm",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (India)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "onlinesbi.sbi",
+      "partition": "train"
+    },
+    {
+      "url": "https://example.com/products/phone-123",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "example.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://example.com/login",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "example.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://example.com/search?q=kotlin+compose",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "example.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://example.com/view?token=c2FtcGxlLXRva2VuLTEyMzQ1",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "example.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://www.google.com/search?q=state+bank+of+india",
+      "label": 0,
+      "category": "Official Tech Infrastructure & Cloud",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "google.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://developer.android.com/reference/kotlin/androidx/compose/material3/package-summary",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "android.com",
+      "partition": "train"
+    },
+    {
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview",
+      "label": 0,
+      "category": "Official Tech Infrastructure & Cloud",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "mozilla.org",
+      "partition": "train"
+    },
+    {
+      "url": "http://retail.onlinesbi.sbi.security-alert.click/auth",
       "label": 1,
       "category": "Banking Credential & KYC Phishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "pnb-netbanking-blocked-reactivate.xyz",
-      "partition": "train"
-    },
-    {
-      "url": "http://fedex-package-customs-hold.click/release",
-      "label": 1,
-      "category": "Logistics / Parcel Surcharge Smishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "fedex-package-customs-hold.click",
-      "partition": "train"
-    },
-    {
-      "url": "http://epfo-pf-balance-withdrawal-claim.men/kyc",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "epfo-pf-balance-withdrawal-claim.men",
-      "partition": "train"
-    },
-    {
-      "url": "http://challan-traffic-police-discount.top/pay",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "challan-traffic-police-discount.top",
-      "partition": "train"
-    },
-    {
-      "url": "http://dhl-express-duty-payment.club/track",
-      "label": 1,
-      "category": "Logistics / Parcel Surcharge Smishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "dhl-express-duty-payment.club",
-      "partition": "train"
-    },
-    {
-      "url": "http://indiapost-redelivery-charges.icu/pay",
-      "label": 1,
-      "category": "Logistics / Parcel Surcharge Smishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "indiapost-redelivery-charges.icu",
-      "partition": "train"
-    },
-    {
-      "url": "http://royalmail-reschedule-missed-delivery.work/redeliver",
-      "label": 1,
-      "category": "Logistics / Parcel Surcharge Smishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "royalmail-reschedule-missed-delivery.work",
-      "partition": "train"
-    },
-    {
-      "url": "http://binance-security-deposit-unlock.xyz/verify",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "binance-security-deposit-unlock.xyz",
-      "partition": "train"
-    },
-    {
-      "url": "http://rb.gy/electricity-bill-pay",
-      "label": 1,
-      "category": "Utility Disconnection Coercion Lure",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "rb.gy",
-      "partition": "train"
-    },
-    {
-      "url": "http://icici-imobile-login-update.click/app",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "icici-imobile-login-update.click",
-      "partition": "train"
-    },
-    {
-      "url": "http://185.220.101.5/auth/paypal/index.php",
-      "label": 1,
-      "category": "Raw IP Direct Host Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "101.5",
-      "partition": "train"
-    },
-    {
-      "url": "http://t.co/fake-login-harvest",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "t.co",
-      "partition": "train"
-    },
-    {
-      "url": "http://paypal-restricted-account-verify.cfd/auth",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "paypal-restricted-account-verify.cfd",
-      "partition": "train"
-    },
-    {
-      "url": "http://netflix-billing-payment-failed.uno/update",
-      "label": 1,
-      "category": "Brand & Account Deactivation Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "netflix-billing-payment-failed.uno",
-      "partition": "train"
-    },
-    {
-      "url": "http://hdfc-bank-rewards-claim.buzz/verify",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "hdfc-bank-rewards-claim.buzz",
-      "partition": "train"
-    },
-    {
-      "url": "http://rbi-bonus-subsidy-scheme.xyz/claim-rupees",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "rbi-bonus-subsidy-scheme.xyz",
-      "partition": "train"
-    },
-    {
-      "url": "http://google-drive-shared-invoice-file.top/view",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "google-drive-shared-invoice-file.top",
-      "partition": "train"
-    },
-    {
-      "url": "http://hdfcbank.com.login-credential-stealer.top/portal",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "login-credential-stealer.top",
-      "partition": "train"
-    },
-    {
-      "url": "http://indiapost-parcel-fee.buzz/track",
-      "label": 1,
-      "category": "Logistics / Parcel Surcharge Smishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "indiapost-parcel-fee.buzz",
-      "partition": "train"
-    },
-    {
-      "url": "http://secure-login-account-update.top:8888/login",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "secure-login-account-update.top",
-      "partition": "train"
-    },
-    {
-      "url": "http://chase-bank-unauthorized-wire-transfer.live/cancel",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "chase-bank-unauthorized-wire-transfer.live",
-      "partition": "train"
-    },
-    {
-      "url": "http://verify-bank-pan-kyc-card.xyz/submit?user=test&token=8912389127391273",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "verify-bank-pan-kyc-card.xyz",
-      "partition": "train"
-    },
-    {
-      "url": "http://axis-bank-creditcard-limit-increase.work/apply",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "axis-bank-creditcard-limit-increase.work",
-      "partition": "train"
-    },
-    {
-      "url": "http://icici-bank-kyc-update.work/login.html",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "icici-bank-kyc-update.work",
-      "partition": "train"
-    },
-    {
-      "url": "http://trustwallet-airdrop-bonus.rest/claim",
-      "label": 1,
-      "category": "Web3 / Crypto Asset Drainer Lure",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "trustwallet-airdrop-bonus.rest",
+      "registrable_domain": "security-alert.click",
       "partition": "train"
     },
     {
@@ -808,163 +696,19 @@
       "partition": "train"
     },
     {
-      "url": "http://pan-card-aadhaar-link-penalty-waive.icu/link",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "pan-card-aadhaar-link-penalty-waive.icu",
-      "partition": "train"
-    },
-    {
-      "url": "http://fastag-blacklist-remove-urgent.buzz/toll",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "fastag-blacklist-remove-urgent.buzz",
-      "partition": "train"
-    },
-    {
-      "url": "http://microsoft365-security-reauth.monster/login",
-      "label": 1,
-      "category": "Brand & Account Deactivation Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "microsoft365-security-reauth.monster",
-      "partition": "train"
-    },
-    {
-      "url": "http://hdfc-net-banking-secure.top/netbanking",
+      "url": "http://icici-bank-kyc-update.work/login.html",
       "label": 1,
       "category": "Banking Credential & KYC Phishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "hdfc-net-banking-secure.top",
+      "registrable_domain": "icici-bank-kyc-update.work",
       "partition": "train"
     },
     {
-      "url": "http://yono-sbi-rewards-cashback.xyz/transfer",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "yono-sbi-rewards-cashback.xyz",
-      "partition": "train"
-    },
-    {
-      "url": "http://incometax-refund-direct-transfer.club/verify",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "incometax-refund-direct-transfer.club",
-      "partition": "train"
-    },
-    {
-      "url": "http://tinyurl.com/indiapost-fee-pay",
+      "url": "http://fedex-package-customs-hold.click/release",
       "label": 1,
       "category": "Logistics / Parcel Surcharge Smishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "tinyurl.com",
-      "partition": "train"
-    },
-    {
-      "url": "http://onlinesbi.sbi.banking-verification.xyz/login.php",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "banking-verification.xyz",
-      "partition": "train"
-    },
-    {
-      "url": "http://coinbase-account-compromised-freeze.top/auth",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "coinbase-account-compromised-freeze.top",
-      "partition": "train"
-    },
-    {
-      "url": "http://canarabank-mobilebanking-alert.buzz/verify",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "canarabank-mobilebanking-alert.buzz",
-      "partition": "train"
-    },
-    {
-      "url": "http://sbi-kyc-verification.top/update",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "sbi-kyc-verification.top",
-      "partition": "train"
-    },
-    {
-      "url": "http://kotak-cherry-investment-double.racing/login",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "kotak-cherry-investment-double.racing",
-      "partition": "train"
-    },
-    {
-      "url": "http://jio-5g-unlimited-offer-claim.shop/free",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "jio-5g-unlimited-offer-claim.shop",
-      "partition": "train"
-    },
-    {
-      "url": "http://appleid-support-icloud-device-locked.sbs/verify",
-      "label": 1,
-      "category": "Brand & Account Deactivation Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "appleid-support-icloud-device-locked.sbs",
-      "partition": "train"
-    },
-    {
-      "url": "http://sbi.bank.in.fraudulent-domain-redirect.icu/account",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "fraudulent-domain-redirect.icu",
-      "partition": "train"
-    },
-    {
-      "url": "http://sbi-reward-points-converter.buzz/cash",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "sbi-reward-points-converter.buzz",
-      "partition": "train"
-    },
-    {
-      "url": "http://91.240.118.231:8080/onlinesbi/update",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "118.231",
-      "partition": "train"
-    },
-    {
-      "url": "http://bit.ly/sbi-urgent-kyc-update",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "bit.ly",
-      "partition": "train"
-    },
-    {
-      "url": "http://hdfc-kyc-mandatory-update.work/form",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "hdfc-kyc-mandatory-update.work",
-      "partition": "train"
-    },
-    {
-      "url": "http://instagram-blue-tick-verification-free.buzz/claim",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "instagram-blue-tick-verification-free.buzz",
+      "registrable_domain": "fedex-package-customs-hold.click",
       "partition": "train"
     },
     {
@@ -976,83 +720,99 @@
       "partition": "train"
     },
     {
-      "url": "http://paytm-kyc-expired-urgent-update.site/wallet",
+      "url": "http://metamask-seedphrase-restore.surf/wallet",
       "label": 1,
       "category": "Web3 / Crypto Asset Drainer Lure",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "paytm-kyc-expired-urgent-update.site",
+      "registrable_domain": "metamask-seedphrase-restore.surf",
       "partition": "train"
     },
     {
-      "url": "http://customs-duty-indiapost.buzz/hold",
+      "url": "http://trustwallet-airdrop-bonus.rest/claim",
       "label": 1,
-      "category": "Logistics / Parcel Surcharge Smishing",
+      "category": "Web3 / Crypto Asset Drainer Lure",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "customs-duty-indiapost.buzz",
+      "registrable_domain": "trustwallet-airdrop-bonus.rest",
       "partition": "train"
     },
     {
-      "url": "http://amazon-account-suspended-action.pw/security",
+      "url": "http://paypal-account-security-alert.top/signin",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "paypal-account-security-alert.top",
+      "partition": "train"
+    },
+    {
+      "url": "http://paypal-restricted-account-verify.cfd/auth",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "paypal-restricted-account-verify.cfd",
+      "partition": "train"
+    },
+    {
+      "url": "http://appleid-support-icloud-device-locked.sbs/verify",
       "label": 1,
       "category": "Brand & Account Deactivation Phishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "amazon-account-suspended-action.pw",
+      "registrable_domain": "appleid-support-icloud-device-locked.sbs",
       "partition": "train"
     },
     {
-      "url": "http://americanexpress-points-redemption.work/login",
+      "url": "http://microsoft365-security-reauth.monster/login",
       "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
+      "category": "Brand & Account Deactivation Phishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "americanexpress-points-redemption.work",
+      "registrable_domain": "microsoft365-security-reauth.monster",
       "partition": "train"
     },
     {
-      "url": "http://post-office-parcel-reclaim.club/fee",
+      "url": "http://192.168.1.105/bank/sbi/login.html",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "1.105",
+      "partition": "train"
+    },
+    {
+      "url": "http://45.154.255.89/usps/track.php",
       "label": 1,
       "category": "Logistics / Parcel Surcharge Smishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "post-office-parcel-reclaim.club",
+      "registrable_domain": "255.89",
       "partition": "train"
     },
     {
-      "url": "http://pm-kisan-yojana-beneficiary-payment.xyz/list",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "pm-kisan-yojana-beneficiary-payment.xyz",
-      "partition": "train"
-    },
-    {
-      "url": "http://unionbank-atm-card-block-unblock.top/service",
+      "url": "http://91.240.118.231:8080/onlinesbi/update",
       "label": 1,
       "category": "Banking Credential & KYC Phishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "unionbank-atm-card-block-unblock.top",
+      "registrable_domain": "118.231",
       "partition": "train"
     },
     {
-      "url": "http://axis-bank-netbanking-access.icu/auth",
+      "url": "http://secure-login-account-update.top:8888/login",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "secure-login-account-update.top",
+      "partition": "train"
+    },
+    {
+      "url": "http://verify-bank-pan-kyc-card.xyz/submit?user=test&token=8912389127391273",
       "label": 1,
       "category": "Banking Credential & KYC Phishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "axis-bank-netbanking-access.icu",
+      "registrable_domain": "verify-bank-pan-kyc-card.xyz",
       "partition": "train"
     },
     {
-      "url": "http://zoom-meeting-video-recording.sbs/download.apk",
+      "url": "http://sbi.bank.in.fraudulent-domain-redirect.icu/account",
       "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
+      "category": "Banking Credential & KYC Phishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "zoom-meeting-video-recording.sbs",
-      "partition": "train"
-    },
-    {
-      "url": "http://citi-card-suspicious-purchase-alert.icu/confirm",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "citi-card-suspicious-purchase-alert.icu",
+      "registrable_domain": "fraudulent-domain-redirect.icu",
       "partition": "train"
     },
     {
@@ -1064,19 +824,59 @@
       "partition": "train"
     },
     {
-      "url": "http://indiapost-consignment-address.top/shipment",
+      "url": "http://hdfcbank.com.login-credential-stealer.top/portal",
       "label": 1,
-      "category": "Logistics / Parcel Surcharge Smishing",
+      "category": "Banking Credential & KYC Phishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "indiapost-consignment-address.top",
+      "registrable_domain": "login-credential-stealer.top",
       "partition": "train"
     },
     {
-      "url": "http://ayushman-card-health-scheme.work/apply",
+      "url": "http://rbi-bonus-subsidy-scheme.xyz/claim-rupees",
       "label": 1,
       "category": "Deceptive Credential Harvesting Site",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "ayushman-card-health-scheme.work",
+      "registrable_domain": "rbi-bonus-subsidy-scheme.xyz",
+      "partition": "train"
+    },
+    {
+      "url": "http://lottery-winner-kbc-reward.racing/claim",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "lottery-winner-kbc-reward.racing",
+      "partition": "train"
+    },
+    {
+      "url": "http://whatsapp-gold-update-download.fit/app.apk",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "whatsapp-gold-update-download.fit",
+      "partition": "train"
+    },
+    {
+      "url": "http://secure.account.update.auth.sso.verify.domain.top/user/login",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "domain.top",
+      "partition": "train"
+    },
+    {
+      "url": "http://pnb-netbanking-blocked-reactivate.xyz/login",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "pnb-netbanking-blocked-reactivate.xyz",
+      "partition": "train"
+    },
+    {
+      "url": "http://axis-bank-creditcard-limit-increase.work/apply",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "axis-bank-creditcard-limit-increase.work",
       "partition": "train"
     },
     {
@@ -1088,140 +888,84 @@
       "partition": "train"
     },
     {
-      "url": "https://cnn.com/world",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "cnn.com",
-      "partition": "validation"
-    },
-    {
-      "url": "https://airbnb.com/rooms/123456",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "airbnb.com",
-      "partition": "validation"
-    },
-    {
-      "url": "https://yono.sbi/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (India)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "yono.sbi",
-      "partition": "validation"
-    },
-    {
-      "url": "https://nytimes.com/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "nytimes.com",
-      "partition": "validation"
-    },
-    {
-      "url": "https://wise.com/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (Global)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "wise.com",
-      "partition": "validation"
-    },
-    {
-      "url": "https://www.netflix.com/browse",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "netflix.com",
-      "partition": "validation"
-    },
-    {
-      "url": "https://walmart.com/ip/item/98765",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "walmart.com",
-      "partition": "validation"
-    },
-    {
-      "url": "https://docker.com/products/docker-desktop",
-      "label": 0,
-      "category": "Official Tech Infrastructure & Cloud",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "docker.com",
-      "partition": "validation"
-    },
-    {
-      "url": "https://sbi.co.in/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (India)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "sbi.co.in",
-      "partition": "validation"
-    },
-    {
-      "url": "https://zoom.us/join",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "zoom.us",
-      "partition": "validation"
-    },
-    {
-      "url": "https://pnc.com/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "pnc.com",
-      "partition": "validation"
-    },
-    {
-      "url": "https://fedex.com/en-us/tracking.html",
-      "label": 0,
-      "category": "Official Logistics & Postal Service",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "fedex.com",
-      "partition": "validation"
-    },
-    {
-      "url": "https://ebay.com/itm/123456",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "ebay.com",
-      "partition": "validation"
-    },
-    {
-      "url": "https://venmo.com/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "venmo.com",
-      "partition": "validation"
-    },
-    {
-      "url": "https://youtube.com/watch?v=dQw4w9WgXcQ",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "youtube.com",
-      "partition": "validation"
-    },
-    {
-      "url": "http://is.gd/metamask-claim-500",
-      "label": 1,
-      "category": "Web3 / Crypto Asset Drainer Lure",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "is.gd",
-      "partition": "validation"
-    },
-    {
-      "url": "http://192.168.1.105/bank/sbi/login.html",
+      "url": "http://canarabank-mobilebanking-alert.buzz/verify",
       "label": 1,
       "category": "Banking Credential & KYC Phishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "1.105",
-      "partition": "validation"
+      "registrable_domain": "canarabank-mobilebanking-alert.buzz",
+      "partition": "train"
+    },
+    {
+      "url": "http://jio-5g-unlimited-offer-claim.shop/free",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "jio-5g-unlimited-offer-claim.shop",
+      "partition": "train"
+    },
+    {
+      "url": "http://royalmail-reschedule-missed-delivery.work/redeliver",
+      "label": 1,
+      "category": "Logistics / Parcel Surcharge Smishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "royalmail-reschedule-missed-delivery.work",
+      "partition": "train"
+    },
+    {
+      "url": "http://coinbase-account-compromised-freeze.top/auth",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "coinbase-account-compromised-freeze.top",
+      "partition": "train"
+    },
+    {
+      "url": "http://binance-security-deposit-unlock.xyz/verify",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "binance-security-deposit-unlock.xyz",
+      "partition": "train"
+    },
+    {
+      "url": "http://facebook-meta-copyright-strike-appeal.cfd/review",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "facebook-meta-copyright-strike-appeal.cfd",
+      "partition": "train"
+    },
+    {
+      "url": "http://instagram-blue-tick-verification-free.buzz/claim",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "instagram-blue-tick-verification-free.buzz",
+      "partition": "train"
+    },
+    {
+      "url": "http://google-drive-shared-invoice-file.top/view",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "google-drive-shared-invoice-file.top",
+      "partition": "train"
+    },
+    {
+      "url": "http://zoom-meeting-video-recording.sbs/download.apk",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "zoom-meeting-video-recording.sbs",
+      "partition": "train"
+    },
+    {
+      "url": "http://chase-bank-unauthorized-wire-transfer.live/cancel",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "chase-bank-unauthorized-wire-transfer.live",
+      "partition": "train"
     },
     {
       "url": "http://wellsfargo-customer-reauthentication.top/login",
@@ -1229,7 +973,47 @@
       "category": "Deceptive Credential Harvesting Site",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
       "registrable_domain": "wellsfargo-customer-reauthentication.top",
-      "partition": "validation"
+      "partition": "train"
+    },
+    {
+      "url": "http://americanexpress-points-redemption.work/login",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "americanexpress-points-redemption.work",
+      "partition": "train"
+    },
+    {
+      "url": "http://bit.ly/sbi-urgent-kyc-update",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "bit.ly",
+      "partition": "train"
+    },
+    {
+      "url": "http://tinyurl.com/indiapost-fee-pay",
+      "label": 1,
+      "category": "Logistics / Parcel Surcharge Smishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "tinyurl.com",
+      "partition": "train"
+    },
+    {
+      "url": "http://cutt.ly/hdfc-restore-account",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "cutt.ly",
+      "partition": "train"
+    },
+    {
+      "url": "http://is.gd/metamask-claim-500",
+      "label": 1,
+      "category": "Web3 / Crypto Asset Drainer Lure",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "is.gd",
+      "partition": "train"
     },
     {
       "url": "http://official-sbi-portal.top/l0gin",
@@ -1237,6 +1021,374 @@
       "category": "Banking Credential & KYC Phishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
       "registrable_domain": "official-sbi-portal.top",
+      "partition": "train"
+    },
+    {
+      "url": "http://update-pan-sbi-reward.buzz/sbi/kyc",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "update-pan-sbi-reward.buzz",
+      "partition": "train"
+    },
+    {
+      "url": "http://indiapost-consignment-address.top/shipment",
+      "label": 1,
+      "category": "Logistics / Parcel Surcharge Smishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "indiapost-consignment-address.top",
+      "partition": "train"
+    },
+    {
+      "url": "http://track-parcel-india-post.xyz/delivery",
+      "label": 1,
+      "category": "Logistics / Parcel Surcharge Smishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "track-parcel-india-post.xyz",
+      "partition": "train"
+    },
+    {
+      "url": "http://customs-duty-indiapost.buzz/hold",
+      "label": 1,
+      "category": "Logistics / Parcel Surcharge Smishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "customs-duty-indiapost.buzz",
+      "partition": "train"
+    },
+    {
+      "url": "http://post-office-parcel-reclaim.club/fee",
+      "label": 1,
+      "category": "Logistics / Parcel Surcharge Smishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "post-office-parcel-reclaim.club",
+      "partition": "train"
+    },
+    {
+      "url": "http://hdfc-net-banking-secure.top/netbanking",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "hdfc-net-banking-secure.top",
+      "partition": "train"
+    },
+    {
+      "url": "http://hdfc-kyc-mandatory-update.work/form",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "hdfc-kyc-mandatory-update.work",
+      "partition": "train"
+    },
+    {
+      "url": "http://icici-imobile-login-update.click/app",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "icici-imobile-login-update.click",
+      "partition": "train"
+    },
+    {
+      "url": "http://pnb-one-app-update-apk.cam/download",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "pnb-one-app-update-apk.cam",
+      "partition": "train"
+    },
+    {
+      "url": "http://kotak-cherry-investment-double.racing/login",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "kotak-cherry-investment-double.racing",
+      "partition": "train"
+    },
+    {
+      "url": "http://yono-sbi-rewards-cashback.xyz/transfer",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "yono-sbi-rewards-cashback.xyz",
+      "partition": "train"
+    },
+    {
+      "url": "http://sbi-reward-points-converter.buzz/cash",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "sbi-reward-points-converter.buzz",
+      "partition": "train"
+    },
+    {
+      "url": "http://free-recharge-jio-airtel-vi.top/recharge",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "free-recharge-jio-airtel-vi.top",
+      "partition": "train"
+    },
+    {
+      "url": "http://pm-kisan-yojana-beneficiary-payment.xyz/list",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "pm-kisan-yojana-beneficiary-payment.xyz",
+      "partition": "train"
+    },
+    {
+      "url": "http://ayushman-card-health-scheme.work/apply",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "ayushman-card-health-scheme.work",
+      "partition": "train"
+    },
+    {
+      "url": "http://pan-card-aadhaar-link-penalty-waive.icu/link",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "pan-card-aadhaar-link-penalty-waive.icu",
+      "partition": "train"
+    },
+    {
+      "url": "http://challan-traffic-police-discount.top/pay",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "challan-traffic-police-discount.top",
+      "partition": "train"
+    },
+    {
+      "url": "http://speed-post-delivery-attempt-failed.click/in",
+      "label": 1,
+      "category": "Logistics / Parcel Surcharge Smishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "speed-post-delivery-attempt-failed.click",
+      "partition": "train"
+    },
+    {
+      "url": "https://retaii.onlinesbi.sbi/retial/login.html",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "onlinesbi.sbi",
+      "partition": "train"
+    },
+    {
+      "url": "https://www.instagram.com/reeel/DdWd4Wjyh8D/?stkn=ZjFkYzMzMDQzZg==",
+      "label": 1,
+      "category": "Path / Subdomain Manipulation & Typosquatting Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "instagram.com",
+      "partition": "train"
+    },
+    {
+      "url": "http://retail.onlinesbi.sbi.phishing-server.top/retial/login.php",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "phishing-server.top",
+      "partition": "train"
+    },
+    {
+      "url": "http://www.instagram.com.account-recovery-security.xyz/login",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "account-recovery-security.xyz",
+      "partition": "train"
+    },
+    {
+      "url": "http://p\u0430ypal.com/signin",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "p\u0430ypal.com",
+      "partition": "train"
+    },
+    {
+      "url": "http://g\u043e\u043egle.com/accounts",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "g\u043e\u043egle.com",
+      "partition": "train"
+    },
+    {
+      "url": "http://example.com/l0gin",
+      "label": 1,
+      "category": "Path / Subdomain Manipulation & Typosquatting Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "example.com",
+      "partition": "train"
+    },
+    {
+      "url": "http://bank-of-america.secure-session.club/acc0unt",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "secure-session.club",
+      "partition": "train"
+    },
+    {
+      "url": "http://netflix-billing-verify.cam/p4ssword",
+      "label": 1,
+      "category": "Brand & Account Deactivation Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "netflix-billing-verify.cam",
+      "partition": "train"
+    },
+    {
+      "url": "http://trusted-site.com/redirect?url=http://malicious-phish.top/login",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "trusted-site.com",
+      "partition": "train"
+    },
+    {
+      "url": "http://hdfc-kyc-pan-update.icu/auth.php",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "hdfc-kyc-pan-update.icu",
+      "partition": "train"
+    },
+    {
+      "url": "https://en.wikipedia.org/wiki/Phishing",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "wikipedia.org",
+      "partition": "validation"
+    },
+    {
+      "url": "https://gitlab.com/explore",
+      "label": 0,
+      "category": "Official Tech Infrastructure & Cloud",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "gitlab.com",
+      "partition": "validation"
+    },
+    {
+      "url": "https://idbibank.in/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "idbibank.in",
+      "partition": "validation"
+    },
+    {
+      "url": "https://idfcfirstbank.com/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "idfcfirstbank.com",
+      "partition": "validation"
+    },
+    {
+      "url": "https://ippbonline.com/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "ippbonline.com",
+      "partition": "validation"
+    },
+    {
+      "url": "https://notion.so/product",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "notion.so",
+      "partition": "validation"
+    },
+    {
+      "url": "https://flipkart.com/viewcart",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "flipkart.com",
+      "partition": "validation"
+    },
+    {
+      "url": "https://irctc.co.in/nget/train-search",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "irctc.co.in",
+      "partition": "validation"
+    },
+    {
+      "url": "https://usps.com/manage/",
+      "label": 0,
+      "category": "Official Logistics & Postal Service",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "usps.com",
+      "partition": "validation"
+    },
+    {
+      "url": "https://w3schools.com/js/default.asp",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "w3schools.com",
+      "partition": "validation"
+    },
+    {
+      "url": "https://substacks.com/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "substacks.com",
+      "partition": "validation"
+    },
+    {
+      "url": "https://chase.com/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (Global)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "chase.com",
+      "partition": "validation"
+    },
+    {
+      "url": "https://bankofamerica.com/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (Global)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "bankofamerica.com",
+      "partition": "validation"
+    },
+    {
+      "url": "https://americanexpress.com/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "americanexpress.com",
+      "partition": "validation"
+    },
+    {
+      "url": "http://hdfc-bank-rewards-claim.buzz/verify",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "hdfc-bank-rewards-claim.buzz",
+      "partition": "validation"
+    },
+    {
+      "url": "http://indiapost-parcel-fee.buzz/track",
+      "label": 1,
+      "category": "Logistics / Parcel Surcharge Smishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "indiapost-parcel-fee.buzz",
+      "partition": "validation"
+    },
+    {
+      "url": "http://indiapost-redelivery-charges.icu/pay",
+      "label": 1,
+      "category": "Logistics / Parcel Surcharge Smishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "indiapost-redelivery-charges.icu",
       "partition": "validation"
     },
     {
@@ -1248,38 +1400,6 @@
       "partition": "validation"
     },
     {
-      "url": "http://lottery-winner-kbc-reward.racing/claim",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "lottery-winner-kbc-reward.racing",
-      "partition": "validation"
-    },
-    {
-      "url": "http://cutt.ly/hdfc-restore-account",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "cutt.ly",
-      "partition": "validation"
-    },
-    {
-      "url": "http://retail.onlinesbi.sbi.security-alert.click/auth",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "security-alert.click",
-      "partition": "validation"
-    },
-    {
-      "url": "http://pnb-one-app-update-apk.cam/download",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "pnb-one-app-update-apk.cam",
-      "partition": "validation"
-    },
-    {
       "url": "http://electricity-power-disconnect-notice.cam/bill",
       "label": 1,
       "category": "Utility Disconnection Coercion Lure",
@@ -1288,51 +1408,195 @@
       "partition": "validation"
     },
     {
-      "url": "http://secure.account.update.auth.sso.verify.domain.top/user/login",
+      "url": "http://185.220.101.5/auth/paypal/index.php",
       "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
+      "category": "Raw IP Direct Host Phishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "domain.top",
+      "registrable_domain": "101.5",
       "partition": "validation"
     },
     {
-      "url": "http://track-parcel-india-post.xyz/delivery",
+      "url": "http://incometax-refund-direct-transfer.club/verify",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "incometax-refund-direct-transfer.club",
+      "partition": "validation"
+    },
+    {
+      "url": "http://bank-of-baroda-reward-points.download/redeem",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "bank-of-baroda-reward-points.download",
+      "partition": "validation"
+    },
+    {
+      "url": "http://dhl-express-duty-payment.club/track",
       "label": 1,
       "category": "Logistics / Parcel Surcharge Smishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "track-parcel-india-post.xyz",
+      "registrable_domain": "dhl-express-duty-payment.club",
       "partition": "validation"
     },
     {
-      "url": "http://whatsapp-gold-update-download.fit/app.apk",
+      "url": "http://citi-card-suspicious-purchase-alert.icu/confirm",
       "label": 1,
       "category": "Deceptive Credential Harvesting Site",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "whatsapp-gold-update-download.fit",
+      "registrable_domain": "citi-card-suspicious-purchase-alert.icu",
       "partition": "validation"
     },
     {
-      "url": "https://developer.android.com/jetpack/compose",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
+      "url": "http://rb.gy/electricity-bill-pay",
+      "label": 1,
+      "category": "Utility Disconnection Coercion Lure",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "android.com",
+      "registrable_domain": "rb.gy",
+      "partition": "validation"
+    },
+    {
+      "url": "http://axis-bank-netbanking-access.icu/auth",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "axis-bank-netbanking-access.icu",
+      "partition": "validation"
+    },
+    {
+      "url": "http://bob-world-apk-install-free.site/app.apk",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "bob-world-apk-install-free.site",
+      "partition": "validation"
+    },
+    {
+      "url": "http://wellsfargo.com.portal-auth.cfd/retail/login",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "portal-auth.cfd",
+      "partition": "validation"
+    },
+    {
+      "url": "http://sbi-card-points.buzz/redeem.apk",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "sbi-card-points.buzz",
+      "partition": "validation"
+    },
+    {
+      "url": "https://github.com/torvalds/linux",
+      "label": 0,
+      "category": "Official Tech Infrastructure & Cloud",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "github.com",
       "partition": "test"
     },
     {
-      "url": "https://notion.so/product",
+      "url": "https://stackoverflow.com/questions/tagged/kotlin",
       "label": 0,
       "category": "Verified Legitimate Web Destination",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "notion.so",
+      "registrable_domain": "stackoverflow.com",
       "partition": "test"
     },
     {
-      "url": "https://spotify.com/us/premium/",
+      "url": "https://rbi.org.in/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (India)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "rbi.org.in",
+      "partition": "test"
+    },
+    {
+      "url": "https://yesbank.in/",
       "label": 0,
       "category": "Verified Legitimate Web Destination",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "spotify.com",
+      "registrable_domain": "yesbank.in",
+      "partition": "test"
+    },
+    {
+      "url": "https://airtel.in/bank",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "airtel.in",
+      "partition": "test"
+    },
+    {
+      "url": "https://dropbox.com/home",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "dropbox.com",
+      "partition": "test"
+    },
+    {
+      "url": "https://ebay.com/itm/123456",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "ebay.com",
+      "partition": "test"
+    },
+    {
+      "url": "https://dhl.com/global-en/home/tracking.html",
+      "label": 0,
+      "category": "Official Logistics & Postal Service",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "dhl.com",
+      "partition": "test"
+    },
+    {
+      "url": "https://pypi.org/project/requests/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "pypi.org",
+      "partition": "test"
+    },
+    {
+      "url": "https://maven.org/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "maven.org",
+      "partition": "test"
+    },
+    {
+      "url": "https://medium.com/@author/story",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "medium.com",
+      "partition": "test"
+    },
+    {
+      "url": "https://zellepay.com/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "zellepay.com",
+      "partition": "test"
+    },
+    {
+      "url": "https://wellsfargo.com/",
+      "label": 0,
+      "category": "Official Financial & Banking Authority (Global)",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "wellsfargo.com",
+      "partition": "test"
+    },
+    {
+      "url": "https://capitalone.com/",
+      "label": 0,
+      "category": "Verified Legitimate Web Destination",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "capitalone.com",
       "partition": "test"
     },
     {
@@ -1344,179 +1608,51 @@
       "partition": "test"
     },
     {
-      "url": "https://revolut.com/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (Global)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "revolut.com",
-      "partition": "test"
-    },
-    {
-      "url": "https://w3schools.com/js/default.asp",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "w3schools.com",
-      "partition": "test"
-    },
-    {
-      "url": "https://booking.com/hotel/us/sample",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "booking.com",
-      "partition": "test"
-    },
-    {
-      "url": "https://chase.com/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (Global)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "chase.com",
-      "partition": "test"
-    },
-    {
-      "url": "https://federalbank.co.in/",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "federalbank.co.in",
-      "partition": "test"
-    },
-    {
-      "url": "https://flipkart.com/viewcart",
-      "label": 0,
-      "category": "Verified Legitimate Web Destination",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "flipkart.com",
-      "partition": "test"
-    },
-    {
-      "url": "https://www.hdfcbank.com/",
+      "url": "https://sbicard.com/",
       "label": 0,
       "category": "Official Financial & Banking Authority (India)",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "hdfcbank.com",
+      "registrable_domain": "sbicard.com",
       "partition": "test"
     },
     {
-      "url": "https://netbanking.hdfcbank.com/netbanking/",
+      "url": "https://github.com/kotlin/kotlinx.coroutines/releases/tag/1.8.0",
       "label": 0,
-      "category": "Official Financial & Banking Authority (India)",
+      "category": "Official Tech Infrastructure & Cloud",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "hdfcbank.com",
+      "registrable_domain": "github.com",
       "partition": "test"
     },
     {
-      "url": "https://americanexpress.com/",
+      "url": "https://docs.github.com/en/rest/overview/resources-in-the-rest-api",
+      "label": 0,
+      "category": "Official Tech Infrastructure & Cloud",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "github.com",
+      "partition": "test"
+    },
+    {
+      "url": "https://stackoverflow.com/questions/12345678/how-to-fix-android-room-database-migration",
       "label": 0,
       "category": "Verified Legitimate Web Destination",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "americanexpress.com",
+      "registrable_domain": "stackoverflow.com",
       "partition": "test"
     },
     {
-      "url": "https://canarabank.com/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (India)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "canarabank.com",
-      "partition": "test"
-    },
-    {
-      "url": "https://unionbankofindia.co.in/",
-      "label": 0,
-      "category": "Official Financial & Banking Authority (India)",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "unionbankofindia.co.in",
-      "partition": "test"
-    },
-    {
-      "url": "http://airtel-sim-kyc-block-prevention.online/sim",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "airtel-sim-kyc-block-prevention.online",
-      "partition": "test"
-    },
-    {
-      "url": "http://metamask-seedphrase-restore.surf/wallet",
-      "label": 1,
-      "category": "Web3 / Crypto Asset Drainer Lure",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "metamask-seedphrase-restore.surf",
-      "partition": "test"
-    },
-    {
-      "url": "http://speed-post-delivery-attempt-failed.click/in",
-      "label": 1,
-      "category": "Logistics / Parcel Surcharge Smishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "speed-post-delivery-attempt-failed.click",
-      "partition": "test"
-    },
-    {
-      "url": "http://bank-of-baroda-reward-points.download/redeem",
+      "url": "http://sbi-kyc-verification.top/update",
       "label": 1,
       "category": "Banking Credential & KYC Phishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "bank-of-baroda-reward-points.download",
+      "registrable_domain": "sbi-kyc-verification.top",
       "partition": "test"
     },
     {
-      "url": "http://sbi-card-reward-pts.icu/redeem.php",
+      "url": "http://onlinesbi.sbi.banking-verification.xyz/login.php",
       "label": 1,
       "category": "Banking Credential & KYC Phishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "sbi-card-reward-pts.icu",
-      "partition": "test"
-    },
-    {
-      "url": "http://bankofamerica-fraud-prevention-alert.pw/unlock",
-      "label": 1,
-      "category": "Banking Credential & KYC Phishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "bankofamerica-fraud-prevention-alert.pw",
-      "partition": "test"
-    },
-    {
-      "url": "http://bob-world-apk-install-free.site/app.apk",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "bob-world-apk-install-free.site",
-      "partition": "test"
-    },
-    {
-      "url": "http://dropbox-secure-file-download.click/invoice.exe",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "dropbox-secure-file-download.click",
-      "partition": "test"
-    },
-    {
-      "url": "http://facebook-meta-copyright-strike-appeal.cfd/review",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "facebook-meta-copyright-strike-appeal.cfd",
-      "partition": "test"
-    },
-    {
-      "url": "http://free-recharge-jio-airtel-vi.top/recharge",
-      "label": 1,
-      "category": "Deceptive Credential Harvesting Site",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "free-recharge-jio-airtel-vi.top",
-      "partition": "test"
-    },
-    {
-      "url": "http://45.154.255.89/usps/track.php",
-      "label": 1,
-      "category": "Logistics / Parcel Surcharge Smishing",
-      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "255.89",
+      "registrable_domain": "banking-verification.xyz",
       "partition": "test"
     },
     {
@@ -1528,11 +1664,91 @@
       "partition": "test"
     },
     {
-      "url": "http://update-pan-sbi-reward.buzz/sbi/kyc",
+      "url": "http://netflix-billing-payment-failed.uno/update",
+      "label": 1,
+      "category": "Brand & Account Deactivation Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "netflix-billing-payment-failed.uno",
+      "partition": "test"
+    },
+    {
+      "url": "http://amazon-account-suspended-action.pw/security",
+      "label": 1,
+      "category": "Brand & Account Deactivation Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "amazon-account-suspended-action.pw",
+      "partition": "test"
+    },
+    {
+      "url": "http://epfo-pf-balance-withdrawal-claim.men/kyc",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "epfo-pf-balance-withdrawal-claim.men",
+      "partition": "test"
+    },
+    {
+      "url": "http://unionbank-atm-card-block-unblock.top/service",
       "label": 1,
       "category": "Banking Credential & KYC Phishing",
       "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
-      "registrable_domain": "update-pan-sbi-reward.buzz",
+      "registrable_domain": "unionbank-atm-card-block-unblock.top",
+      "partition": "test"
+    },
+    {
+      "url": "http://paytm-kyc-expired-urgent-update.site/wallet",
+      "label": 1,
+      "category": "Web3 / Crypto Asset Drainer Lure",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "paytm-kyc-expired-urgent-update.site",
+      "partition": "test"
+    },
+    {
+      "url": "http://airtel-sim-kyc-block-prevention.online/sim",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "airtel-sim-kyc-block-prevention.online",
+      "partition": "test"
+    },
+    {
+      "url": "http://dropbox-secure-file-download.click/invoice.exe",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "dropbox-secure-file-download.click",
+      "partition": "test"
+    },
+    {
+      "url": "http://bankofamerica-fraud-prevention-alert.pw/unlock",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "bankofamerica-fraud-prevention-alert.pw",
+      "partition": "test"
+    },
+    {
+      "url": "http://t.co/fake-login-harvest",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "t.co",
+      "partition": "test"
+    },
+    {
+      "url": "http://sbi-card-reward-pts.icu/redeem.php",
+      "label": 1,
+      "category": "Banking Credential & KYC Phishing",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "sbi-card-reward-pts.icu",
+      "partition": "test"
+    },
+    {
+      "url": "http://fastag-blacklist-remove-urgent.buzz/toll",
+      "label": 1,
+      "category": "Deceptive Credential Harvesting Site",
+      "source_provenance": "Curated Cyber Threat Intelligence Corpus / Verified Legitimate Authority",
+      "registrable_domain": "fastag-blacklist-remove-urgent.buzz",
       "partition": "test"
     }
   ]

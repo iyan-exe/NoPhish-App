@@ -34,94 +34,130 @@ data class MlInferenceResult(
 object SupervisedUrlClassifier {
 
     const val MODEL_VERSION = "v1.1.0-stratified"
-    const val MODEL_CHECKSUM = "4cdf75ebeca34bf0"
+    const val MODEL_CHECKSUM = "e50e043176d569d5"
 
     // Feature means from training set standardization (ONLY training split)
     val FEATURE_MEANS = floatArrayOf(
-        36.80152672f,
-        20.96946565f,
-        7.97709924f,
-        0.24427481f,
-        1.27480916f,
-        1.41984733f,
-        1.29770992f,
-        0.00763359f,
-        0.01526718f,
-        0.01526718f,
-        0.00763359f,
-        0.50381679f,
-        0.21374046f,
-        0.01121642f,
-        0.52671756f,
-        0.01526718f,
-        0.21374046f,
-        0.01526718f,
-        3.42837297f,
-        2.18707659f,
-        0.42366412f,
-        0.75572519f,
-        4.74045802f,
-        8.48091603f
+        38.39473684f,
+        20.68421053f,
+        8.94736842f,
+        1.11184211f,
+        1.46710526f,
+        1.26973684f,
+        1.40789474f,
+        0.04605263f,
+        0.06578947f,
+        0.00657895f,
+        0.00657895f,
+        0.70394737f,
+        0.25000000f,
+        0.01707163f,
+        0.53947368f,
+        0.01973684f,
+        0.37500000f,
+        0.01315789f,
+        3.39366169f,
+        2.33458972f,
+        0.38486842f,
+        0.74342105f,
+        5.00000000f,
+        8.47368421f,
+        1.14473684f,
+        0.15789474f,
+        0.13815789f,
+        0.02631579f,
+        0.11842105f,
+        0.01973684f,
+        0.00000000f,
+        0.28289474f,
+        0.03289474f,
+        0.01052632f,
+        0.00657895f,
+        0.02631579f
     )
 
     // Feature standard deviations from training set standardization (ONLY training split)
     val FEATURE_STDS = floatArrayOf(
-        12.36618132f,
-        11.69258846f,
-        6.16746654f,
-        2.78516134f,
-        0.69954658f,
-        1.51810548f,
-        0.60145696f,
-        0.08703629f,
-        0.17407258f,
-        0.12261358f,
-        0.08703629f,
-        2.27288714f,
-        1.33655381f,
-        0.04897285f,
-        0.49928566f,
-        0.12261358f,
-        0.60541619f,
-        0.12261358f,
-        0.52975859f,
-        1.25875040f,
-        0.49989801f,
-        1.06356453f,
-        1.89651261f,
-        2.37143029f
+        13.62039777f,
+        11.62428326f,
+        7.42310535f,
+        5.34291137f,
+        0.93834795f,
+        1.46884485f,
+        0.78936403f,
+        0.20959911f,
+        0.33777625f,
+        0.08084346f,
+        0.08084346f,
+        2.35036060f,
+        1.47456506f,
+        0.05513805f,
+        0.49843939f,
+        0.13909457f,
+        0.84924502f,
+        0.11395071f,
+        0.50248462f,
+        1.21394581f,
+        0.49160851f,
+        1.13263033f,
+        1.98679854f,
+        2.94678096f,
+        0.87665554f,
+        0.41525615f,
+        0.42995321f,
+        0.16007270f,
+        0.34286353f,
+        0.18029197f,
+        1.00000000f,
+        0.45040571f,
+        0.17836108f,
+        0.05020733f,
+        0.08084346f,
+        0.16007270f
     )
 
     // Supervised Model Learned Weights (L2 Regularized Logistic Regression)
     val WEIGHTS = floatArrayOf(
-        0.40213302f,  // urlLength
-        0.38288227f,  // hostLength
-        0.18078912f,  // pathLength
-        0.00833244f,  // queryLength
-        -0.12046640f,  // dotCount
-        0.83473727f,  // hyphenCount
-        -0.67579300f,  // slashCount
-        0.00833244f,  // questionMarkCount
-        0.00833244f,  // equalCount
-        -0.10815163f,  // atSymbolCount
-        0.00833244f,  // ampersandCount
-        0.07662896f,  // digitCount
-        0.24513830f,  // hostDigitCount
-        0.05270722f,  // digitRatio
-        -1.37315350f,  // isHttps
-        0.24414089f,  // isIpAddress
-        -0.07507211f,  // subdomainCount
-        0.06951533f,  // hasCustomPort
-        0.10715710f,  // hostEntropy
-        0.30581463f,  // pathEntropy
-        0.68724558f,  // tldAbuseRisk
-        0.52217495f,  // phishingKeywordCount
-        0.52572649f,  // tokenCount
-        0.14334836f  // longestTokenLength
+        0.33044394f,  // urlLength
+        0.40896059f,  // hostLength
+        0.07323378f,  // pathLength
+        -0.01496085f,  // queryLength
+        -0.08655633f,  // dotCount
+        0.78705993f,  // hyphenCount
+        -0.53357809f,  // slashCount
+        -0.05277680f,  // questionMarkCount
+        0.41460772f,  // equalCount
+        -0.06014972f,  // atSymbolCount
+        0.00589522f,  // ampersandCount
+        0.14200146f,  // digitCount
+        0.21512302f,  // hostDigitCount
+        0.17388209f,  // digitRatio
+        -1.45832438f,  // isHttps
+        0.21481150f,  // isIpAddress
+        -0.09849523f,  // subdomainCount
+        0.03714745f,  // hasCustomPort
+        0.28164269f,  // hostEntropy
+        0.26754417f,  // pathEntropy
+        0.67206460f,  // tldAbuseRisk
+        0.38418752f,  // phishingKeywordCount
+        0.44273137f,  // tokenCount
+        -0.11610612f,  // longestTokenLength
+        -0.21030710f,  // pathSegmentCount
+        0.31895863f,  // suspiciousPathTokenCount
+        0.34011362f,  // typoCount
+        0.39659152f,  // charSubstitutionCount
+        -0.02893556f,  // repeatedCharCount
+        0.46095217f,  // homoglyphCount
+        0.00000000f,  // encodedCharCount
+        0.16383615f,  // loginAuthKeywordPresence
+        0.04192984f,  // trustedDomainPathAnomaly
+        -0.04216668f,  // queryComplexity
+        0.06374481f,  // hasNestedUrlOrRedirect
+        0.28747007f  // domainPathMismatch
     )
 
     // Model Learned Bias
-    const val BIAS = -0.01144894f
+    const val BIAS = 0.06721677f
 
     private fun sigmoid(z: Float): Float {
         return when {
@@ -143,6 +179,18 @@ object SupervisedUrlClassifier {
             "pathEntropy" -> "Path entropy: ${"%.2f".format(rawValue)} bits (+${"%.2f".format(contribution)})"
             "hostDigitCount" -> "Numerical digits in host: ${rawValue.toInt()} (+${"%.2f".format(contribution)})"
             "urlLength" -> "URL length: ${rawValue.toInt()} chars (+${"%.2f".format(contribution)})"
+            "pathSegmentCount" -> "Path segment depth: ${rawValue.toInt()} segments (+${"%.2f".format(contribution)})"
+            "suspiciousPathTokenCount" -> "Suspicious path tokens: ${rawValue.toInt()} lookalike segments (+${"%.2f".format(contribution)})"
+            "typoCount" -> "Typo / character transposition count: ${rawValue.toInt()} (+${"%.2f".format(contribution)})"
+            "charSubstitutionCount" -> "Deceptive leetspeak/digit substitutions: ${rawValue.toInt()} (+${"%.2f".format(contribution)})"
+            "repeatedCharCount" -> "Character repetition / stuttering anomaly: ${rawValue.toInt()} (+${"%.2f".format(contribution)})"
+            "homoglyphCount" -> "Unicode confusable / homoglyph characters: ${rawValue.toInt()} (+${"%.2f".format(contribution)})"
+            "encodedCharCount" -> "URL encoded characters: ${rawValue.toInt()} (+${"%.2f".format(contribution)})"
+            "loginAuthKeywordPresence" -> if (rawValue > 0.5f) "Targeted authentication/banking credential keyword in path/query (+${"%.2f".format(contribution)})" else "No credential keywords"
+            "trustedDomainPathAnomaly" -> if (rawValue > 0.5f) "Severe lookalike path anomaly targeting trusted platform (+${"%.2f".format(contribution)})" else "Standard trusted path"
+            "queryComplexity" -> "Query parameter complexity: ${"%.2f".format(rawValue)} (+${"%.2f".format(contribution)})"
+            "hasNestedUrlOrRedirect" -> if (rawValue > 0.5f) "Suspicious open redirect or nested URL parameter (+${"%.2f".format(contribution)})" else "No nested URL"
+            "domainPathMismatch" -> if (rawValue > 0.5f) "Brand impersonation in path on third-party domain (+${"%.2f".format(contribution)})" else "Domain/path alignment"
             else -> "$name: $rawValue (contribution: ${"%.2f".format(contribution)})"
         }
     }

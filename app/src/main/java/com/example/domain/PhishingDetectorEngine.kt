@@ -10,7 +10,10 @@ import com.example.data.api.RetrofitClient
 import com.example.data.local.WhitelistDao
 import com.example.data.model.AnalysisBreakdown
 import com.example.data.model.EngineTelemetry
+import com.example.data.model.EvidenceItem
+import com.example.data.model.EvidenceSeverity
 import com.example.data.model.PhishingAnalysisResult
+import com.example.data.model.ScanStatus
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +22,7 @@ import org.json.JSONObject
 import kotlin.math.roundToInt
 
 /**
- * Multi-Layered Phishing URL Detection Engine.
+ * Multi-Layered Phishing Detection Platform Engine (NoPhish 2.0).
  *
  * Integrates:
  * 1. Supervised Machine Learning Classifier (UrlFeatureExtractor + SupervisedUrlClassifier)
@@ -28,7 +31,11 @@ import kotlin.math.roundToInt
  * 4. Lexical, Syntactic, & Path Obfuscation Heuristics (UrlStructureAnalyzer)
  * 5. Brand Impersonation Radar & Levenshtein Distance (BrandImpersonationDetector)
  * 6. SQLite Room Database Whitelist & Threat Repository
- * 7. Gemini Neural Reasoning Engine
+ * 7. HTML & Credential Harvesting Page Analyzer (HtmlWebpageAnalyzer)
+ * 8. Redirect Chain Inspector & Shortener Cloaking (RedirectChainAnalyzer)
+ * 9. QR / Quishing Code Analysis (QrCodeAnalyzer)
+ * 10. Screenshot Visual Evidence Analyzer (ScreenshotAnalyzer)
+ * 11. Gemini Neural Reasoning Engine
  */
 class PhishingDetectorEngine(
     private val whitelistDao: WhitelistDao,
@@ -39,29 +46,69 @@ class PhishingDetectorEngine(
         .build()
     private val jsonAdapter = moshi.adapter(PhishingAnalysisResult::class.java)
 
-    suspend fun analyze(url: String, contextText: String): PhishingAnalysisResult = withContext(Dispatchers.IO) {
+    suspend fun analyze(
+        url: String,
+        contextText: String,
+        htmlContent: String = "",
+        redirectUrls: List<String> = emptyList(),
+        qrPayload: String? = null,
+        screenshotText: String? = null,
+        isBlockedDomain: Boolean = false
+    ): PhishingAnalysisResult = withContext(Dispatchers.IO) {
         val trimmedUrl = url.trim()
         val trimmedContext = contextText.trim()
 
         // 1. Run local multi-layer analysis pipeline with REAL algorithms
         val urlAnalysis = UrlStructureAnalyzer.analyze(trimmedUrl)
         val mlResult = SupervisedUrlClassifier.predict(trimmedUrl)
-        val ragQuery = "$trimmedUrl $trimmedContext ${urlAnalysis.cleanHost} ${urlAnalysis.path} ${if (urlAnalysis.hasPathLookalike) "lookalike path typo" else ""}"
+
+        // Sensitive tokens/session parameters should NEVER be sent to external AI/RAG services
+        val sanitizedQuery = PathAnomalyDetector.redactSensitiveQueryParams(urlAnalysis.query)
+        val sanitizedUrlForAi = if (sanitizedQuery.isNotBlank() && urlAnalysis.query.isNotBlank()) {
+            val baseBeforeQuery = trimmedUrl.substringBefore('?')
+            "$baseBeforeQuery?$sanitizedQuery"
+        } else {
+            trimmedUrl
+        }
+
+        val ragQuery = "$sanitizedUrlForAi $trimmedContext ${urlAnalysis.cleanHost} ${urlAnalysis.path} ${if (urlAnalysis.hasPathLookalike) "lookalike path typo" else ""}"
         val ragResult = RagThreatRetriever.retrieve(ragQuery)
         val nlpAnalysis = NlpSemanticAnalyzer.analyze(trimmedContext)
         val brandCheck = BrandImpersonationDetector.evaluate(urlAnalysis.cleanHost, trimmedContext, trimmedUrl)
         val threatIntel = ThreatIntelligenceService.evaluate(urlAnalysis.cleanHost, urlAnalysis.path, trimmedUrl)
 
-        // Whitelist DB check
-        val whitelistEntity = whitelistDao.findByDomain(urlAnalysis.cleanHost)
-            ?: whitelistDao.findByDomain(urlAnalysis.rootDomain)
-            ?: if (urlAnalysis.cleanHost.contains(".")) {
-                val root = DomainUtils.extractRootDomain(urlAnalysis.cleanHost)
-                whitelistDao.findByDomain(root)
+        // Multimodal Modules
+        val htmlAnalysis = HtmlWebpageAnalyzer.analyze(htmlContent, trimmedUrl)
+        val redirectAnalysis = if (redirectUrls.isNotEmpty()) {
+            RedirectChainAnalyzer.analyzeChain(redirectUrls)
+        } else {
+            RedirectChainAnalyzer.analyzeChain(listOf(trimmedUrl))
+        }
+        val qrAnalysis = if (!qrPayload.isNullOrBlank()) {
+            QrCodeAnalyzer.extractAndEvaluate(qrPayload)
+        } else null
+        val screenshotAnalysis = if (!screenshotText.isNullOrBlank()) {
+            ScreenshotAnalyzer.analyzeScreenshot(null, trimmedUrl, screenshotText)
+        } else null
+
+        // Whitelist DB check: A legitimate parent domain must NEVER confer whitelist immunity
+        // to an unauthorized typosquatted or lookalike subdomain!
+        val rawWhitelistEntity = whitelistDao.findByDomain(urlAnalysis.cleanHost)
+            ?: if (!urlAnalysis.hasSubdomainLookalike) {
+                whitelistDao.findByDomain(urlAnalysis.rootDomain)
+                    ?: if (urlAnalysis.cleanHost.contains(".")) {
+                        val root = DomainUtils.extractRootDomain(urlAnalysis.cleanHost)
+                        whitelistDao.findByDomain(root)
+                    } else null
             } else null
 
-        val isWhitelisted = whitelistEntity != null || urlAnalysis.isKnownLegitimate
-        val verifiedBrandName = whitelistEntity?.brandName ?: if (urlAnalysis.isKnownLegitimate) "Verified Authority" else null
+        val isWhitelisted = if (urlAnalysis.hasSubdomainLookalike) {
+            false
+        } else {
+            rawWhitelistEntity != null || urlAnalysis.isKnownLegitimate
+        }
+
+        val verifiedBrandName = rawWhitelistEntity?.brandName ?: if (urlAnalysis.isKnownLegitimate && !urlAnalysis.hasSubdomainLookalike) "Verified Authority" else null
         val whitelistStatusStr = if (isWhitelisted) "Match Found ($verifiedBrandName)" else "No Match"
 
         // Build Engine Telemetry from genuine executed implementations
@@ -77,7 +124,13 @@ class PhishingDetectorEngine(
             nlpTactics = nlpAnalysis.pressureTactics,
             shannonEntropy = mlResult.features.vector[18],
             urlLength = trimmedUrl.length,
-            modelVersion = mlResult.modelVersion
+            inputType = when {
+                qrAnalysis != null -> "QR_CODE"
+                screenshotAnalysis != null -> "SCREENSHOT"
+                htmlContent.isNotBlank() -> "HTML_PAGE"
+                else -> "URL"
+            },
+            modelVersion = "v2.0.0-multimodal"
         )
 
         // Baseline local synthesis
@@ -90,9 +143,14 @@ class PhishingDetectorEngine(
             nlpAnalysis = nlpAnalysis,
             brandCheck = brandCheck,
             threatIntel = threatIntel,
+            htmlAnalysis = htmlAnalysis,
+            redirectAnalysis = redirectAnalysis,
+            qrAnalysis = qrAnalysis,
+            screenshotAnalysis = screenshotAnalysis,
             telemetry = telemetry,
             isWhitelisted = isWhitelisted,
-            whitelistBrand = verifiedBrandName
+            whitelistBrand = verifiedBrandName,
+            isBlockedDomain = isBlockedDomain
         )
 
         // 2. Query Gemini API for neural reasoning if API key exists
@@ -133,7 +191,7 @@ class PhishingDetectorEngine(
                     systemInstruction = GeminiContent(
                         parts = listOf(
                             GeminiPart(
-                                text = "You are an elite Cybersecurity Threat Intelligence & Phishing URL Classifier. Strictly evaluate the target URL, RAG threat intelligence, NLP urgency metrics, and ML vector features using ONLY the supplied technical evidence. Do NOT invent or assume external events. If evidence is insufficient, say so. Local deterministic threat detections (brand impersonation, path leetspeak tampering, open redirects, executable downloads) represent ground truth and must never be downgraded. Respond ONLY in valid JSON matching the requested schema."
+                                text = "You are an elite Cybersecurity Threat Intelligence & Phishing URL Classifier for NoPhish 2.0. Strictly evaluate the target URL, RAG threat intelligence, NLP urgency metrics, and ML vector features using ONLY the supplied technical evidence. Never claim a site is absolutely safe simply because no threat was detected. If evidence is insufficient, say so. Local deterministic threat detections (brand impersonation, path leetspeak tampering, open redirects, executable downloads, external forms) represent ground truth and must never be downgraded. Respond ONLY in valid JSON matching the requested schema."
                             )
                         )
                     )
@@ -163,30 +221,32 @@ class PhishingDetectorEngine(
                                 urlAnalysis.hasSuspiciousPayload ||
                                 urlAnalysis.hasAtSymbolTrick ||
                                 urlAnalysis.isIpAddress ||
-                                urlAnalysis.isPunycode
+                                urlAnalysis.isPunycode ||
+                                urlAnalysis.hasSubdomainLookalike ||
+                                (urlAnalysis.hasPathAnomaly && urlAnalysis.pathAnomalyScore >= 60) ||
+                                htmlAnalysis.hasExternalFormAction
 
                         val isDeterministicThreat = brandCheck.isImpersonating ||
                                 hasCriticalPathTampering ||
+                                (urlAnalysis.hasSubdomainLookalike && (urlAnalysis.hasPathLookalike || urlAnalysis.hasPathAnomaly || urlAnalysis.hasLoginContext)) ||
                                 (mlResult.isPhishing && mlResult.probability >= 0.85f) ||
                                 threatIntel.reputationScore <= 20 ||
                                 (ragResult.highestSimilarity >= 0.35f && ragResult.topMatches.firstOrNull()?.document?.severity == "CRITICAL")
 
                         val finalRiskScore = when {
-                            // 1. Whitelisted domain with path tampering or brand spoofing is NEVER safe
-                            hasCriticalPathTampering || brandCheck.isImpersonating -> {
-                                maxOf(parsed.riskScore, localResult.riskScore, 70)
+                            // 1. Whitelisted domain with path tampering, subdomain lookalike, or brand spoofing is NEVER safe
+                            hasCriticalPathTampering || brandCheck.isImpersonating || (urlAnalysis.hasSubdomainLookalike && (urlAnalysis.hasPathLookalike || urlAnalysis.hasPathAnomaly || urlAnalysis.hasLoginContext)) -> {
+                                maxOf(parsed.riskScore, localResult.riskScore, 75)
                             }
-                            // 2. Verified legitimate / whitelisted domain with clean path is safe
-                            (isWhitelisted || urlAnalysis.isKnownLegitimate) && !isDeterministicThreat && !urlAnalysis.hasPathLookalike -> {
+                            // 2. Verified legitimate / whitelisted domain with clean path
+                            (isWhitelisted || urlAnalysis.isKnownLegitimate) && !isDeterministicThreat && !urlAnalysis.hasPathLookalike && !urlAnalysis.hasPathAnomaly -> {
                                 minOf(parsed.riskScore, 10)
                             }
                             // 3. Verified legitimate / whitelisted domain with lookalike path manipulation:
-                            // Legitimate registrable domain provides strong positive evidence;
-                            // Suspicious path lookalike produces a LOW or SUSPICIOUS warning signal, not an automatic phishing verdict
-                            (isWhitelisted || urlAnalysis.isKnownLegitimate) && urlAnalysis.hasPathLookalike -> {
+                            (isWhitelisted || urlAnalysis.isKnownLegitimate) && (urlAnalysis.hasPathLookalike || urlAnalysis.hasPathAnomaly) -> {
                                 if (parsed.riskScore >= 65) 40 else maxOf(parsed.riskScore, 35)
                             }
-                            // 4. Local engine detected a deterministic threat: Gemini reasoning CANNOT downgrade below local threat score
+                            // 4. Local engine detected a deterministic threat
                             isDeterministicThreat -> {
                                 maxOf(parsed.riskScore, localResult.riskScore, 65)
                             }
@@ -197,12 +257,14 @@ class PhishingDetectorEngine(
                         }
 
                         val finalStatus = when {
-                            finalRiskScore >= 65 -> "Phishing"
-                            finalRiskScore >= 30 -> "Suspicious"
-                            else -> "Safe"
+                            isBlockedDomain -> "BLOCKED"
+                            finalRiskScore >= 76 -> "LIKELY PHISHING"
+                            finalRiskScore >= 51 -> "HIGH RISK"
+                            finalRiskScore >= 21 -> "SUSPICIOUS"
+                            else -> "LOW RISK"
                         }
 
-                        val mergedThreats = if ((isWhitelisted || urlAnalysis.isKnownLegitimate) && !brandCheck.isImpersonating && !hasCriticalPathTampering && !urlAnalysis.hasPathLookalike) {
+                        val mergedThreats = if ((isWhitelisted || urlAnalysis.isKnownLegitimate) && !brandCheck.isImpersonating && !hasCriticalPathTampering && !urlAnalysis.hasPathLookalike && !urlAnalysis.hasPathAnomaly) {
                             emptyList()
                         } else {
                             (parsed.detectedThreats + localResult.detectedThreats).distinct()
@@ -220,6 +282,8 @@ class PhishingDetectorEngine(
                             riskScore = finalRiskScore,
                             detectedThreats = mergedThreats,
                             userExplanation = userExplanationWithOverride,
+                            recommendation = localResult.recommendation,
+                            evidenceList = localResult.evidenceList,
                             engineTelemetry = telemetry,
                             contextText = trimmedContext,
                             scannedAt = System.currentTimeMillis()
@@ -247,11 +311,17 @@ class PhishingDetectorEngine(
         nlpAnalysis: NlpAnalysisResult,
         brandCheck: BrandImpersonationResult,
         threatIntel: ThreatIntelResult,
+        htmlAnalysis: HtmlAnalysisResult,
+        redirectAnalysis: RedirectChainResult,
+        qrAnalysis: QrAnalysisResult?,
+        screenshotAnalysis: ScreenshotAnalysisResult?,
         telemetry: EngineTelemetry,
         isWhitelisted: Boolean,
-        whitelistBrand: String?
+        whitelistBrand: String?,
+        isBlockedDomain: Boolean = false
     ): PhishingAnalysisResult {
         val detectedThreats = mutableListOf<String>()
+        val evidenceList = mutableListOf<EvidenceItem>()
 
         var score = 0
 
@@ -260,36 +330,99 @@ class PhishingDetectorEngine(
                 urlAnalysis.hasSuspiciousPayload ||
                 urlAnalysis.hasAtSymbolTrick ||
                 urlAnalysis.isIpAddress ||
-                urlAnalysis.isPunycode
+                urlAnalysis.isPunycode ||
+                urlAnalysis.hasSubdomainLookalike
 
-        if ((isWhitelisted || urlAnalysis.isKnownLegitimate) && !brandCheck.isImpersonating && !hasCriticalPathTampering && !urlAnalysis.hasPathLookalike) {
+        if ((isWhitelisted || urlAnalysis.isKnownLegitimate) && !brandCheck.isImpersonating && !hasCriticalPathTampering && !urlAnalysis.hasPathLookalike && !urlAnalysis.hasPathAnomaly) {
             score = 0
-        } else if ((isWhitelisted || urlAnalysis.isKnownLegitimate) && !brandCheck.isImpersonating && !hasCriticalPathTampering && urlAnalysis.hasPathLookalike) {
-            // Legitimate registrable domain provides strong positive evidence.
-            // Suspicious path lookalike produces a LOW or SUSPICIOUS signal (score 35) with clear explanatory warnings,
-            // never automatically classifying legitimate institutions as phishing.
+            evidenceList.add(
+                EvidenceItem(
+                    category = "Domain Legitimacy",
+                    title = "Verified Legitimate Domain Authority",
+                    description = "The root domain '${urlAnalysis.cleanHost}' is recognized as an official entity (${whitelistBrand ?: "Verified Authority"}).",
+                    severity = EvidenceSeverity.LOW,
+                    indicator = "Official Authority"
+                )
+            )
+        } else if ((isWhitelisted || urlAnalysis.isKnownLegitimate) && !brandCheck.isImpersonating && !hasCriticalPathTampering && (urlAnalysis.hasPathLookalike || urlAnalysis.hasPathAnomaly)) {
             detectedThreats.addAll(urlAnalysis.detectedThreats)
             score = 35
+            evidenceList.add(
+                EvidenceItem(
+                    category = "Path Structure",
+                    title = "Lookalike Path on Legitimate Host",
+                    description = "Path segment contains transposition or character manipulation imitating official routes.",
+                    severity = EvidenceSeverity.MEDIUM,
+                    indicator = urlAnalysis.path
+                )
+            )
         } else {
             detectedThreats.addAll(urlAnalysis.detectedThreats)
             detectedThreats.addAll(threatIntel.threatSignatures)
 
             if (ragResult.matchedCampaignTitle != null && ragResult.highestSimilarity >= 0.25f) {
                 detectedThreats.add("RAG Vector Match: ${ragResult.matchedCampaignTitle} (${"%.1f".format(ragResult.highestSimilarity * 100)}% Cosine Sim)")
+                evidenceList.add(
+                    EvidenceItem(
+                        category = "Threat Intelligence",
+                        title = "Known Phishing Campaign Match",
+                        description = "Pattern matched profile '${ragResult.matchedCampaignTitle}' in threat intelligence vector repository.",
+                        severity = EvidenceSeverity.HIGH,
+                        indicator = "${"%.1f".format(ragResult.highestSimilarity * 100)}% similarity"
+                    )
+                )
+            } else {
+                evidenceList.add(
+                    EvidenceItem(
+                        category = "Threat Intelligence",
+                        title = "Threat Intelligence Lookup",
+                        description = "No matching threat intelligence found in local signatures. (Absence of data is not proof of safety).",
+                        severity = EvidenceSeverity.NEUTRAL,
+                        indicator = "No Match Found"
+                    )
+                )
             }
 
             if (mlResult.isPhishing && mlResult.riskScore >= 60) {
                 val primarySig = mlResult.topContributors.firstOrNull { it.isRiskIndication }?.description
                     ?: "Supervised ML classifier flagged high phishing probability (${"%.1f".format(mlResult.probability * 100)}%)"
                 detectedThreats.add("ML Model Flag: $primarySig")
+                evidenceList.add(
+                    EvidenceItem(
+                        category = "Machine Learning",
+                        title = "Supervised Classifier Prediction",
+                        description = "L2-regularized logistic regression model computed high phishing probability (${"%.1f".format(mlResult.probability * 100)}%).",
+                        severity = EvidenceSeverity.HIGH,
+                        indicator = primarySig
+                    )
+                )
             }
 
             if (brandCheck.isImpersonating) {
-                detectedThreats.add("Brand Impersonation (${brandCheck.impersonatedBrand ?: "Target"} vs untrusted domain '${urlAnalysis.cleanHost}')")
+                val threatDesc = "Brand Impersonation (${brandCheck.impersonatedBrand ?: "Target"} vs untrusted domain '${urlAnalysis.cleanHost}')"
+                detectedThreats.add(threatDesc)
+                evidenceList.add(
+                    EvidenceItem(
+                        category = "Brand Analysis",
+                        title = "Target Brand Spoofing",
+                        description = "Site targets visual/textual brand '${brandCheck.impersonatedBrand}' on untrusted domain '${urlAnalysis.cleanHost}'.",
+                        severity = EvidenceSeverity.CRITICAL,
+                        indicator = brandCheck.impersonatedBrand ?: "Spoofed Brand"
+                    )
+                )
             }
 
             if (nlpAnalysis.hasUrgency) {
                 detectedThreats.add("Psychological Coercion (${nlpAnalysis.pressureTactics.joinToString(", ")})")
+                evidenceList.add(
+                    EvidenceItem(
+                        category = "NLP Psychological Analysis",
+                        title = "Artificial Urgency & Coercion",
+                        description = "Context message employs coercive pressure tactics: ${nlpAnalysis.pressureTactics.joinToString(", ")}.",
+                        severity = EvidenceSeverity.MEDIUM,
+                        indicator = "Urgency Score: ${nlpAnalysis.urgencyScore}/100"
+                    )
+                )
             }
 
             // 1. Critical Base Factors
@@ -297,28 +430,92 @@ class PhishingDetectorEngine(
                 score += if (brandCheck.mismatchSeverity == "Critical") 65 else 50
             }
 
-            if (urlAnalysis.hasPathObfuscation) {
-                score += 70 // Deceptive leetspeak substitution in URL path
+            if (urlAnalysis.hasSubdomainLookalike) {
+                score += 65
+                evidenceList.add(
+                    EvidenceItem(
+                        category = "Subdomain Analysis",
+                        title = "Deceptive Lookalike Subdomain",
+                        description = "Subdomain spoofs an authoritative institution to mislead mobile address-bar truncation.",
+                        severity = EvidenceSeverity.CRITICAL,
+                        indicator = urlAnalysis.subdomainLookalikeMatch?.candidate ?: "Subdomain Spoof"
+                    )
+                )
             }
 
-            if (urlAnalysis.hasPathLookalike) {
-                score += 45 // Lookalike path manipulation on untrusted or compromised host
+            if (urlAnalysis.hasSubdomainLookalike && (urlAnalysis.hasPathLookalike || urlAnalysis.hasPathAnomaly || urlAnalysis.hasLoginContext)) {
+                score += 25
+            }
+
+            if (urlAnalysis.hasPathObfuscation) {
+                score += 70
+                evidenceList.add(
+                    EvidenceItem(
+                        category = "Path Structure",
+                        title = "Leetspeak Character Substitution",
+                        description = "Endpoint path uses digit substitution (e.g. 'l0gin') to evade keyword blockers.",
+                        severity = EvidenceSeverity.CRITICAL,
+                        indicator = "Leetspeak in path"
+                    )
+                )
+            }
+
+            if (urlAnalysis.hasPathAnomaly) {
+                score += maxOf(urlAnalysis.pathAnomalyScore, 48)
+            } else if (urlAnalysis.hasPathLookalike) {
+                score += 45
             }
 
             if (urlAnalysis.hasOpenRedirect) {
-                score += 65 // Open redirect vulnerability
+                score += 65
+                evidenceList.add(
+                    EvidenceItem(
+                        category = "Redirect Analysis",
+                        title = "Open Redirect Parameter",
+                        description = "URL contains an unvalidated redirect parameter pointing traffic to an external target.",
+                        severity = EvidenceSeverity.HIGH,
+                        indicator = "Open redirect detected"
+                    )
+                )
             }
 
             if (urlAnalysis.hasSuspiciousPayload) {
-                score += 75 // Direct malicious executable download
+                score += 75
+                evidenceList.add(
+                    EvidenceItem(
+                        category = "Payload Analysis",
+                        title = "Malicious Executable Download Link",
+                        description = "URL links directly to executable or application package installer (.apk / .exe).",
+                        severity = EvidenceSeverity.CRITICAL,
+                        indicator = "Direct binary payload"
+                    )
+                )
             }
 
             if (urlAnalysis.isIpAddress) {
                 score += 55
+                evidenceList.add(
+                    EvidenceItem(
+                        category = "Host Analysis",
+                        title = "Raw IP Address Host",
+                        description = "URL uses raw dotted-decimal IP address (${urlAnalysis.cleanHost}) bypassing standard DNS registries.",
+                        severity = EvidenceSeverity.HIGH,
+                        indicator = urlAnalysis.cleanHost
+                    )
+                )
             }
 
             if (urlAnalysis.typoSquattedBrand != null) {
                 score += 55
+                evidenceList.add(
+                    EvidenceItem(
+                        category = "Domain Typosquatting",
+                        title = "Typosquatted Brand Collision",
+                        description = "Domain '${urlAnalysis.cleanHost}' is a close visual misspelling of legitimate brand '${urlAnalysis.typoSquattedBrand}'.",
+                        severity = EvidenceSeverity.CRITICAL,
+                        indicator = urlAnalysis.typoSquattedBrand ?: ""
+                    )
+                )
             }
 
             if (urlAnalysis.hasAtSymbolTrick) {
@@ -327,11 +524,29 @@ class PhishingDetectorEngine(
 
             if (urlAnalysis.isPunycode) {
                 score += 40
+                evidenceList.add(
+                    EvidenceItem(
+                        category = "Unicode / Homoglyph",
+                        title = "Punycode IDN Homoglyph",
+                        description = "Domain uses internationalized characters to mimic standard Latin characters visually.",
+                        severity = EvidenceSeverity.HIGH,
+                        indicator = urlAnalysis.cleanHost
+                    )
+                )
             }
 
             // 2. High Threat Factors
             if (urlAnalysis.suspiciousTld != null) {
                 score += 25
+                evidenceList.add(
+                    EvidenceItem(
+                        category = "TLD Analysis",
+                        title = "High-Risk Top-Level Domain",
+                        description = "Domain utilizes .${urlAnalysis.suspiciousTld} which has disproportionately high spam/abuse rates.",
+                        severity = EvidenceSeverity.MEDIUM,
+                        indicator = ".${urlAnalysis.suspiciousTld}"
+                    )
+                )
             }
 
             if (urlAnalysis.hasPhishingKeywords) {
@@ -340,6 +555,15 @@ class PhishingDetectorEngine(
 
             if (urlAnalysis.isShortener) {
                 score += 25
+                evidenceList.add(
+                    EvidenceItem(
+                        category = "URL Cloaking",
+                        title = "URL Shortener Detected",
+                        description = "Shortened URL masks final destination domain and certificate details.",
+                        severity = EvidenceSeverity.MEDIUM,
+                        indicator = urlAnalysis.cleanHost
+                    )
+                )
             }
 
             if (urlAnalysis.hasSuspiciousPort) {
@@ -356,6 +580,15 @@ class PhishingDetectorEngine(
 
             if (urlAnalysis.highEntropy) {
                 score += 20
+                evidenceList.add(
+                    EvidenceItem(
+                        category = "Lexical Entropy",
+                        title = "High Shannon Entropy",
+                        description = "Hostname exhibits high randomness characteristic of algorithmically generated domains (DGA).",
+                        severity = EvidenceSeverity.MEDIUM,
+                        indicator = "Entropy: ${"%.2f".format(telemetry.shannonEntropy)}"
+                    )
+                )
             }
 
             // 3. Supervised Machine Learning & RAG Fusion
@@ -371,22 +604,64 @@ class PhishingDetectorEngine(
             if (nlpAnalysis.hasUrgency) {
                 score += (nlpAnalysis.urgencyScore * 0.30).toInt()
             }
+
+            // 5. Multimodal HTML & Redirect signals
+            if (htmlAnalysis.hasExternalFormAction) {
+                score += 50
+                detectedThreats.add("HTML Credential Siphon: Form posts to external domain")
+                evidenceList.addAll(htmlAnalysis.evidence)
+            } else if (htmlAnalysis.hasLoginForm) {
+                score += 15
+                evidenceList.addAll(htmlAnalysis.evidence)
+            }
+
+            if (redirectAnalysis.hasExcessiveRedirects || redirectAnalysis.hasOpenRedirectParam) {
+                score += redirectAnalysis.redirectRiskScore
+                evidenceList.addAll(redirectAnalysis.evidence)
+            }
+
+            if (qrAnalysis != null && qrAnalysis.qrRiskScore > 0) {
+                score += qrAnalysis.qrRiskScore
+                evidenceList.addAll(qrAnalysis.evidence)
+            }
+
+            if (screenshotAnalysis != null && screenshotAnalysis.visualRiskScore > 0) {
+                score += screenshotAnalysis.visualRiskScore
+                evidenceList.addAll(screenshotAnalysis.evidence)
+            }
+        }
+
+        if (isBlockedDomain) {
+            score = 100
         }
 
         score = score.coerceIn(0, 100)
 
-        // Status thresholds
+        // Status thresholds complying strictly with NoPhish 2.0 terminology
         val status = when {
-            score >= 65 -> "Phishing"
-            score >= 30 -> "Suspicious"
-            else -> "Safe"
+            isBlockedDomain -> "BLOCKED"
+            score >= 76 -> "LIKELY PHISHING"
+            score >= 51 -> "HIGH RISK"
+            score >= 21 -> "SUSPICIOUS"
+            else -> "LOW RISK"
+        }
+
+        val recommendation = when {
+            isBlockedDomain -> "CRITICAL: BLOCKED DOMAIN. This domain is confirmed malicious. Immediate block enforced. Do not open."
+            score >= 76 -> "CRITICAL: LIKELY PHISHING. Do NOT enter passwords, OTPs, or payment details. If received via email/SMS, report immediately."
+            score >= 51 -> "HIGH RISK: Suspicious deceptive indicators detected. Do not submit sensitive forms. Verify identity through official external channels."
+            score >= 21 -> "SUSPICIOUS: Moderate anomaly patterns detected. Exercise caution and verify URL spelling before proceeding."
+            else -> "LOW RISK: No overt phishing signatures detected. Absence of detected threats does not guarantee absolute safety. Always practice standard cybersecurity hygiene."
         }
 
         val breakdown = AnalysisBreakdown(
             urlStructure = urlAnalysis.explanation,
             nlpUrgencyCheck = nlpAnalysis.explanation,
             brandImpersonation = brandCheck.explanation,
-            whitelistStatus = if (isWhitelisted) "Match Found ($whitelistBrand)" else "No Match"
+            whitelistStatus = if (isWhitelisted) "Match Found ($whitelistBrand)" else "No Match",
+            htmlAnalysis = htmlAnalysis.summary,
+            redirectChain = redirectAnalysis.summary,
+            visualAnalysis = screenshotAnalysis?.visualSummary ?: "No screenshot analyzed"
         )
 
         val userExplanation = generateUserFriendlyExplanation(
@@ -408,6 +683,8 @@ class PhishingDetectorEngine(
             detectedThreats = detectedThreats.distinct(),
             analysisBreakdown = breakdown,
             userExplanation = userExplanation,
+            recommendation = recommendation,
+            evidenceList = evidenceList.distinctBy { it.title },
             engineTelemetry = telemetry,
             scannedAt = System.currentTimeMillis(),
             contextText = contextText
@@ -440,17 +717,20 @@ class PhishingDetectorEngine(
             val statusRaw = root.optString("status", "").ifBlank {
                 root.optString("verdict", "").ifBlank {
                     when {
-                        score >= 65 -> "Phishing"
-                        score >= 30 -> "Suspicious"
-                        else -> "Safe"
+                        score >= 76 -> "LIKELY PHISHING"
+                        score >= 51 -> "HIGH RISK"
+                        score >= 21 -> "SUSPICIOUS"
+                        else -> "LOW RISK"
                     }
                 }
             }
 
             val status = when {
-                statusRaw.contains("phish", ignoreCase = true) -> "Phishing"
-                statusRaw.contains("susp", ignoreCase = true) -> "Suspicious"
-                else -> "Safe"
+                statusRaw.contains("BLOCK", ignoreCase = true) -> "BLOCKED"
+                statusRaw.contains("LIKELY", ignoreCase = true) || (statusRaw.contains("PHISH", ignoreCase = true) && !statusRaw.contains("LOW", ignoreCase = true)) -> "LIKELY PHISHING"
+                statusRaw.contains("HIGH", ignoreCase = true) -> "HIGH RISK"
+                statusRaw.contains("SUSP", ignoreCase = true) -> "SUSPICIOUS"
+                else -> "LOW RISK"
             }
 
             val threatsList = mutableListOf<String>()
@@ -485,6 +765,10 @@ class PhishingDetectorEngine(
                 }
             }
 
+            val recommendation = root.optString("recommendation").ifBlank {
+                fallback.recommendation
+            }
+
             return PhishingAnalysisResult(
                 url = originalUrl,
                 status = status,
@@ -494,9 +778,14 @@ class PhishingDetectorEngine(
                     urlStructure = urlStructure,
                     nlpUrgencyCheck = nlpCheck,
                     brandImpersonation = brandImpersonation,
-                    whitelistStatus = whitelistStatusStr
+                    whitelistStatus = whitelistStatusStr,
+                    htmlAnalysis = fallback.analysisBreakdown.htmlAnalysis,
+                    redirectChain = fallback.analysisBreakdown.redirectChain,
+                    visualAnalysis = fallback.analysisBreakdown.visualAnalysis
                 ),
                 userExplanation = userExplanation,
+                recommendation = recommendation,
+                evidenceList = fallback.evidenceList,
                 engineTelemetry = telemetry,
                 rawJson = cleanJson,
                 scannedAt = System.currentTimeMillis(),
@@ -519,66 +808,73 @@ class PhishingDetectorEngine(
         whitelistBrand: String?
     ): String {
         return buildString {
-            when (status) {
-                "Phishing" -> {
-                    append("DANGER: High-risk PHISHING threat detected (Risk Score: $score/100, ML Probability: ${(mlResult.probability * 100).toInt()}%). ")
+            when {
+                status == "BLOCKED" -> {
+                    append("BLOCKED: Known malicious destination. Active cyber threat indicators triggered immediate safety block.")
+                }
+                status == "LIKELY PHISHING" || status == "HIGH RISK" -> {
+                    append("CRITICAL: Significant phishing indicators detected (Risk Score: $score/100, ML Probability: ${(mlResult.probability * 100).toInt()}%). ")
+                    if (urlAnalysis.hasSubdomainLookalike) {
+                        val subMatch = urlAnalysis.subdomainLookalikeMatch
+                        if (subMatch != null) {
+                            append("SUBDOMAIN SPOOFING: Host contains a deceptive lookalike/typosquat ('${subMatch.candidate}') of official service '${subMatch.targetKeyword}'. A legitimate parent domain does NOT confer safety to lookalike subdomains. ")
+                        } else {
+                            append("SUBDOMAIN SPOOFING: Host contains an unauthorized lookalike/typosquatted subdomain. ")
+                        }
+                    }
+                    if (urlAnalysis.hasPathAnomaly || urlAnalysis.hasPathLookalike) {
+                        append("PATH MANIPULATION: URL path contains a deceptive typo, character manipulation, or lookalike segment imitating an official path. ")
+                    }
+                    if (urlAnalysis.hasLoginContext && (urlAnalysis.hasSubdomainLookalike || urlAnalysis.hasPathLookalike || urlAnalysis.hasPathAnomaly)) {
+                        append("AUTHENTICATION TARGETING: Deceptive structure targets a sensitive login or banking endpoint. ")
+                    }
                     if (urlAnalysis.hasPathObfuscation) {
-                        append("CRITICAL PATH DECEPTION: The URL path employs deceptive leetspeak/character substitution ('l0gin' spoofing 'login'). Legitimate services NEVER use digit-substituted endpoint paths. ")
+                        append("CRITICAL PATH DECEPTION: URL path employs deceptive leetspeak/character substitution ('l0gin' spoofing 'login'). ")
                     }
                     if (urlAnalysis.hasOpenRedirect) {
-                        append("OPEN REDIRECT RISK: The URL contains an open redirect parameter pointing traffic to an external target. ")
+                        append("OPEN REDIRECT RISK: URL contains an open redirect parameter pointing traffic to an external target. ")
                     }
                     if (urlAnalysis.hasSuspiciousPayload) {
-                        append("DANGEROUS PAYLOAD: The URL targets a direct application or executable installer (.apk / .exe). ")
+                        append("DANGEROUS PAYLOAD: URL targets a direct application or executable installer (.apk / .exe). ")
                     }
                     if (brandCheck.isImpersonating) {
-                        append("This site is actively impersonating ${brandCheck.impersonatedBrand}, while leading to an unauthorized domain ('${urlAnalysis.cleanHost}') instead of official portal ('${brandCheck.legitimateDomain}'). ")
+                        append("Active brand impersonation targeting ${brandCheck.impersonatedBrand} on unauthorized domain ('${urlAnalysis.cleanHost}'). ")
                     }
                     if (ragResult.matchedCampaignTitle != null && ragResult.highestSimilarity >= 0.25f) {
                         append("Threat matched intelligence profile '${ragResult.matchedCampaignTitle}' (${(ragResult.highestSimilarity * 100).toInt()}% cosine similarity). ")
                     }
                     if (urlAnalysis.isIpAddress) {
-                        append("The URL uses a raw numerical IP address (${urlAnalysis.cleanHost}) commonly used to evade domain reputation filters. ")
+                        append("URL uses raw numerical IP address (${urlAnalysis.cleanHost}) bypassing domain reputation filters. ")
                     }
                     if (urlAnalysis.suspiciousTld != null) {
-                        append("The domain utilizes an untrusted Top-Level Domain (.${urlAnalysis.suspiciousTld}) heavily associated with scam operations. ")
+                        append("Domain utilizes an untrusted Top-Level Domain (.${urlAnalysis.suspiciousTld}) heavily associated with scam operations. ")
                     }
                     if (nlpAnalysis.hasUrgency) {
-                        append("The accompanying message employs artificial urgency and coercion tactics. ")
+                        append("Accompanying message employs artificial urgency and psychological coercion. ")
                     }
                     append("Do NOT visit this link, enter credentials, or make payments.")
                 }
-                "Suspicious" -> {
-                    append("WARNING: This URL exhibits risk indicators (Risk Score: $score/100). ")
-                    if (urlAnalysis.hasPathLookalike) {
-                        val specificIssue = urlAnalysis.detectedThreats.firstOrNull {
-                            it.contains("lookalike", ignoreCase = true) ||
-                            it.contains("typo", ignoreCase = true) ||
-                            it.contains("transposition", ignoreCase = true) ||
-                            it.contains("imitate", ignoreCase = true)
-                        }
-                        if (specificIssue != null) {
-                            append("$specificIssue. While the domain '${urlAnalysis.cleanHost}' is legitimate, verify the specific URL path before interacting. ")
-                        } else {
-                            append("Suspicious lookalike path or typo detected (e.g. visual character substitution or transposition imitating an official path). While the domain '${urlAnalysis.cleanHost}' is legitimate, verify the specific URL path before interacting. ")
-                        }
+                status == "SUSPICIOUS" -> {
+                    append("SUSPICIOUS: Moderate anomaly patterns detected (Risk Score: $score/100). ")
+                    if (urlAnalysis.hasPathLookalike || urlAnalysis.hasPathAnomaly) {
+                        append("Suspicious lookalike path or typo detected on '${urlAnalysis.cleanHost}'. Verify the specific URL path before interacting. ")
                     } else if (urlAnalysis.hasPathObfuscation) {
                         append("Deceptive character substitution / leetspeak detected in URL path. ")
                     } else if (urlAnalysis.hasOpenRedirect) {
                         append("Open redirect destination detected in URL query. ")
                     } else if (urlAnalysis.detectedThreats.isNotEmpty()) {
-                        append("Issues identified: ${urlAnalysis.detectedThreats.first()}. ")
+                        append("Indicators identified: ${urlAnalysis.detectedThreats.first()}. ")
                     }
                     if (nlpAnalysis.hasUrgency) {
-                        append("The message employs urgency tactics. ")
+                        append("Context message employs urgency tactics. ")
                     }
                     append("Exercise caution and verify directly through the official provider before opening.")
                 }
                 else -> {
                     if (isWhitelisted) {
-                        append("SAFE: The domain '${urlAnalysis.cleanHost}' is verified as an official entity (${whitelistBrand ?: "Verified Authority"}). Standard cybersecurity checks found no deceptive manipulation.")
+                        append("LOW RISK: The domain '${urlAnalysis.cleanHost}' is verified as an official entity (${whitelistBrand ?: "Verified Authority"}). Standard cybersecurity checks found no deceptive manipulation. Note: Always verify the exact sender.")
                     } else {
-                        append("SAFE: Multi-layer cybersecurity analysis (ML probability ${(mlResult.probability * 100).toInt()}%, 0 RAG threats) found no deceptive patterns, brand mismatches, or malicious signatures for '${urlAnalysis.cleanHost}'.")
+                        append("LOW RISK: Multi-layer cybersecurity analysis (ML probability ${(mlResult.probability * 100).toInt()}%, 0 active threats) found no deceptive patterns or malicious signatures for '${urlAnalysis.cleanHost}'. Note: Absence of detected threats does not guarantee absolute safety; always practice standard cybersecurity hygiene.")
                     }
                 }
             }
@@ -599,16 +895,25 @@ class PhishingDetectorEngine(
         localThreats: List<String>,
         localScore: Int
     ): String {
+        // Redact any session identifiers or sensitive token parameters before transmitting to external AI
+        val redactedQuery = PathAnomalyDetector.redactSensitiveQueryParams(urlAnalysis.query)
+        val sanitizedUrl = if (urlAnalysis.query.isNotBlank() && redactedQuery.isNotBlank()) {
+            val base = url.substringBefore('?')
+            "$base?$redactedQuery"
+        } else {
+            url
+        }
+
         return """
 Evaluate the following URL and message context for phishing, scam, and brand impersonation threats:
 
 TARGET URL DETAILS:
-- Full URL: $url
+- Full URL: $sanitizedUrl
 - Scheme: ${urlAnalysis.scheme}
 - Clean Host: ${urlAnalysis.cleanHost}
 - Root Domain: ${urlAnalysis.rootDomain}
 - Path: ${urlAnalysis.path}
-- Query: ${urlAnalysis.query}
+- Query: $redactedQuery
 - Raw IP Host: ${urlAnalysis.isIpAddress}
 - Suspicious TLD: ${urlAnalysis.suspiciousTld ?: "None"}
 - Hyphen Count: ${urlAnalysis.hasHyphenStuffing}

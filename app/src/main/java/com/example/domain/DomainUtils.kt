@@ -132,6 +132,7 @@ object DomainUtils {
         "openai.com", "chatgpt.com", "anthropic.com", "huggingface.co",
         "medium.com", "dev.to", "hashnode.com", "substack.com", "notion.so", "figma.com", "slack.com", "zoom.us",
         "dropbox.com", "box.com", "spotify.com", "netflix.com", "hulu.com", "disneyplus.com", "twitch.tv",
+        "ictkerala.org",
 
         // Global Financial & Banking
         "paypal.com", "paypal.me", "stripe.com", "square.com", "squareup.com", "cash.app", "venmo.com", "zellepay.com",
@@ -185,6 +186,17 @@ object DomainUtils {
         return "${parts[parts.size - 2]}.${parts.last()}"
     }
 
+    fun extractSubdomain(host: String): String {
+        val clean = host.lowercase().trim()
+        val root = extractRootDomain(clean)
+        if (clean == root || clean.isBlank() || root.isBlank()) return ""
+        return if (clean.endsWith(".$root")) {
+            clean.removeSuffix(".$root")
+        } else {
+            ""
+        }
+    }
+
     /**
      * Checks if a domain is an authorized Indian Banking or Financial Regulatory entity.
      * Verified by RBI `.bank.in`, `.sbi`, `.rbi.org.in`, `.npci.org.in` or official registry.
@@ -192,6 +204,16 @@ object DomainUtils {
     fun isIndianBankingDomain(host: String): Boolean {
         val clean = host.lowercase().trim()
         val root = extractRootDomain(clean)
+        val sub = extractSubdomain(clean)
+
+        // If the domain contains a subdomain that is a typosquat or lookalike of a sensitive
+        // banking or service keyword (e.g. 'retaii' vs 'retail'), it is NOT an authorized domain!
+        if (sub.isNotBlank()) {
+            val subLabels = sub.split(".", "-").filter { it.isNotBlank() }
+            if (subLabels.any { TyposquattingDetector.detect(it) != null }) {
+                return false
+            }
+        }
 
         // 1. Any domain ending in .sbi is State Bank of India's exclusive ICANN dot-brand gTLD
         if (clean.endsWith(".sbi") || clean == "sbi") {
@@ -214,6 +236,15 @@ object DomainUtils {
     fun isKnownTopLegitimateDomain(host: String): Boolean {
         val clean = host.lowercase().trim()
         val root = extractRootDomain(clean)
+        val sub = extractSubdomain(clean)
+
+        // A typosquatted or lookalike subdomain invalidates legitimate status
+        if (sub.isNotBlank()) {
+            val subLabels = sub.split(".", "-").filter { it.isNotBlank() }
+            if (subLabels.any { TyposquattingDetector.detect(it) != null }) {
+                return false
+            }
+        }
 
         if (isIndianBankingDomain(clean)) {
             return true

@@ -199,6 +199,49 @@ fun LayerBreakdownSection(
             detailContent = "Database status: ${breakdown.whitelistStatus}. Query executed live on local SQLite Room repository.",
             defaultExpanded = false
         )
+
+        // Layer 7: HTML Webpage & Credential Siphoning
+        val htmlHasThreat = breakdown.htmlAnalysis.contains("credential", ignoreCase = true) ||
+                breakdown.htmlAnalysis.contains("siphon", ignoreCase = true) ||
+                breakdown.htmlAnalysis.contains("external", ignoreCase = true) ||
+                breakdown.htmlAnalysis.contains("scareware", ignoreCase = true)
+        LayerCard(
+            layerIndex = "07",
+            title = "HTML & Credential Harvesting Page Inspector",
+            subtitle = "Form action destination, password inputs, obfuscated JS & meta-refresh",
+            statusText = if (htmlHasThreat) "Threat In HTML" else if (breakdown.htmlAnalysis.isNotBlank()) "Clean / Evaluated" else "No HTML Provided",
+            statusColor = if (htmlHasThreat) StatusPhishing else StatusSafe,
+            detailContent = if (breakdown.htmlAnalysis.isNotBlank()) breakdown.htmlAnalysis else "No HTML source provided for this scan target. Analyzed based on URL and query signatures.",
+            defaultExpanded = htmlHasThreat
+        )
+
+        // Layer 8: Redirect Chain & Cloaking
+        val redirectHasThreat = breakdown.redirectChain.contains("open redirect", ignoreCase = true) ||
+                breakdown.redirectChain.contains("excessive", ignoreCase = true) ||
+                breakdown.redirectChain.contains("shortener", ignoreCase = true)
+        LayerCard(
+            layerIndex = "08",
+            title = "Redirect Chain & Cloaking Analyzer",
+            subtitle = "Multi-hop redirect inspector, open redirect sinks & shortener unmasking",
+            statusText = if (redirectHasThreat) "Redirect Anomaly" else "Direct Route",
+            statusColor = if (redirectHasThreat) StatusSuspicious else StatusSafe,
+            detailContent = breakdown.redirectChain,
+            defaultExpanded = redirectHasThreat
+        )
+
+        // Layer 9: Screenshot & Visual Brand Inspection
+        val visualHasThreat = breakdown.visualAnalysis.contains("scareware", ignoreCase = true) ||
+                breakdown.visualAnalysis.contains("mismatch", ignoreCase = true) ||
+                breakdown.visualAnalysis.contains("impersonat", ignoreCase = true)
+        LayerCard(
+            layerIndex = "09",
+            title = "Visual & Screenshot Evidence Inspector",
+            subtitle = "Visual branding cues, fake system dialogs & OCR text alignment",
+            statusText = if (visualHasThreat) "Visual Threat" else "Clean / N/A",
+            statusColor = if (visualHasThreat) StatusPhishing else StatusSafe,
+            detailContent = breakdown.visualAnalysis,
+            defaultExpanded = visualHasThreat
+        )
     }
 }
 

@@ -91,12 +91,16 @@ fun RiskScoreGauge(
     }
 
     val (statusColor, pillBg, pillBorder, statusLabel, glyphSymbol) = when {
-        score >= 70 || status.equals("Phishing", ignoreCase = true) ->
-            Tuple5(StatusPhishing, StatusPhishingContainer, StatusPhishingBorder, "PHISHING DETECTED", "▲")
-        score >= 35 || status.equals("Suspicious", ignoreCase = true) ->
-            Tuple5(StatusSuspicious, StatusSuspiciousContainer, StatusSuspiciousBorder, "SUSPICIOUS THREAT", "◆")
+        status.contains("BLOCK", ignoreCase = true) ->
+            Tuple5(StatusPhishing, StatusPhishingContainer, StatusPhishingBorder, "BLOCKED", "✖")
+        score >= 76 || status.contains("LIKELY", ignoreCase = true) || (status.contains("PHISH", ignoreCase = true) && !status.contains("LOW", ignoreCase = true)) ->
+            Tuple5(StatusPhishing, StatusPhishingContainer, StatusPhishingBorder, "LIKELY PHISHING", "▲")
+        score >= 51 || status.contains("HIGH", ignoreCase = true) ->
+            Tuple5(StatusPhishing, StatusPhishingContainer, StatusPhishingBorder, "HIGH RISK", "▲")
+        score >= 21 || status.contains("SUSP", ignoreCase = true) ->
+            Tuple5(StatusSuspicious, StatusSuspiciousContainer, StatusSuspiciousBorder, "SUSPICIOUS", "◆")
         else ->
-            Tuple5(StatusSafe, StatusSafeContainer, StatusSafeBorder, "VERIFIED SAFE", "●")
+            Tuple5(StatusSafe, StatusSafeContainer, StatusSafeBorder, "LOW RISK", "●")
     }
 
     Column(

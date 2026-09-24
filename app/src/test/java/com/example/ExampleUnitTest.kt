@@ -85,9 +85,9 @@ class ExampleUnitTest {
     fun testSupervisedModelMetadataAndInferenceParity() {
         assertEquals("v1.1.0-stratified", SupervisedUrlClassifier.MODEL_VERSION)
         assertNotNull(SupervisedUrlClassifier.MODEL_CHECKSUM)
-        assertEquals(24, SupervisedUrlClassifier.FEATURE_MEANS.size)
-        assertEquals(24, SupervisedUrlClassifier.FEATURE_STDS.size)
-        assertEquals(24, SupervisedUrlClassifier.WEIGHTS.size)
+        assertEquals(36, SupervisedUrlClassifier.FEATURE_MEANS.size)
+        assertEquals(36, SupervisedUrlClassifier.FEATURE_STDS.size)
+        assertEquals(36, SupervisedUrlClassifier.WEIGHTS.size)
 
         val maliciousUrl = "http://secure-login.bank-update.xyz/verify?token=123"
         val mlResult = SupervisedUrlClassifier.predict(maliciousUrl)
@@ -288,6 +288,184 @@ class ExampleUnitTest {
 
         val blogUrl = UrlStructureAnalyzer.analyze("https://example.com/blog/news-article")
         assertFalse("Benign blog URL should not trigger lookalike flag", blogUrl.hasPathLookalike)
+    }
+
+    @Test
+    fun testRetaiiOnlinesbiPhishingUrlDetection() {
+        val testUrl = "https://retaii.onlinesbi.sbi/retial/login.html"
+        val structure = UrlStructureAnalyzer.analyze(testUrl)
+
+        // 1. Subdomain lookalike: 'retaii' looks like 'retail'
+        assertTrue("Must detect subdomain lookalike 'retaii'", structure.hasSubdomainLookalike)
+        assertEquals("retaii", structure.subdomainLookalikeMatch?.candidate)
+        assertEquals("retail", structure.subdomainLookalikeMatch?.targetKeyword)
+
+        // 2. Must NOT be treated as legitimate SBI domain because of typosquatted subdomain
+        assertFalse("Typosquatted subdomain must invalidate isKnownLegitimate", structure.isKnownLegitimate)
+
+        // 3. Path lookalike / anomaly: '/retial/' transposition of '/retail/'
+        assertTrue("Must detect path lookalike '/retial/'", structure.hasPathLookalike)
+        assertTrue("Must detect path anomaly", structure.hasPathAnomaly)
+
+        // 4. Login context
+        assertTrue("Must detect login context", structure.hasLoginContext)
+
+        // 5. ML prediction
+        val ml = SupervisedUrlClassifier.predict(testUrl)
+        assertTrue("ML probability must reflect high risk", ml.probability > 0.40f)
+
+        // 6. Threats list
+        assertTrue(
+            "Threats must mention subdomain lookalike",
+            structure.detectedThreats.any { it.contains("retaii") && it.contains("retail") }
+        )
+        assertTrue(
+            "Threats must mention path transposition",
+            structure.detectedThreats.any { it.contains("retial") && it.contains("retail") }
+        )
+    }
+
+    @Test
+    fun testInstagramReeelPathManipulationDetection() {
+        val testUrl = "https://www.instagram.com/reeel/DdWd4Wjyh8D/?stkn=ZjFkYzMzMDQzZg=="
+        val structure = UrlStructureAnalyzer.analyze(testUrl)
+
+        // 1. Host is recognized as Instagram
+        assertTrue("Host is known legitimate", structure.isKnownLegitimate)
+
+        // 2. Path contains repeated-character manipulation 'reeel' imitating 'reel'
+        assertTrue("Path must trigger hasPathLookalike or hasPathAnomaly", structure.hasPathLookalike || structure.hasPathAnomaly)
+
+        // 3. Threats list must explain the path anomaly
+        assertTrue(
+            "Threats must mention 'reeel' imitating 'reel'",
+            structure.detectedThreats.any { it.contains("reeel") && it.contains("reel") }
+        )
+
+        // 4. ML model
+        val ml = SupervisedUrlClassifier.predict(testUrl)
+        assertNotNull("ML inference must succeed", ml)
+
+        // 5. Legitimate Instagram baseline URL must NOT flag path lookalike
+        val legitUrl = "https://www.instagram.com/reel/DdWd4Wjyh8D/"
+        val legitStructure = UrlStructureAnalyzer.analyze(legitUrl)
+        assertFalse("Legitimate Instagram /reel/ path must not flag path lookalike", legitStructure.hasPathLookalike)
+        assertFalse("Legitimate Instagram /reel/ path must not flag path anomaly", legitStructure.hasPathAnomaly)
+    }
+
+    @Test
+    fun testLegitimateSbiPortalNotFlagged() {
+        val legitSbiUrl = "https://retail.onlinesbi.sbi/retail/login.htm"
+        val structure = UrlStructureAnalyzer.analyze(legitSbiUrl)
+
+        assertTrue("Legitimate SBI domain must be recognized", structure.isKnownLegitimate)
+        assertFalse("Legitimate SBI subdomain must not flag lookalike", structure.hasSubdomainLookalike)
+        assertFalse("Legitimate SBI path must not flag lookalike", structure.hasPathLookalike)
+        assertFalse("Legitimate SBI path must not flag anomaly", structure.hasPathAnomaly)
+    }
+
+    // --- False-Positive Regression & Login/Session Risk Engine Unit Tests ---
+
+    @Test
+    fun testLegitimateDomainWithLoginPathNotFlaggedAsAnomalyOrPhishing() {
+        // Test Case 1: Legitimate domain + /login
+        val url = "https://ictkerala.org/app/activity/login"
+        val structure = UrlStructureAnalyzer.analyze(url)
+
+        assertTrue("Domain must be recognized as legitimate", structure.isKnownLegitimate)
+        assertFalse("Authentication path on legitimate domain is not an anomaly", structure.hasPathAnomaly)
+        assertFalse("Authentication path on legitimate domain is not a path lookalike", structure.hasPathLookalike)
+        assertFalse("Should not have path obfuscation", structure.hasPathObfuscation)
+        assertTrue("Detected threats should be empty for legitimate login path", structure.detectedThreats.isEmpty())
+    }
+
+    @Test
+    fun testLegitimateDomainWithSessionIdNotFlaggedAsThreat() {
+        // Test Case 2: Legitimate domain + session_id
+        val url = "https://ictkerala.org/app/activity/login?session_id=a1b2c3d4e5f67890abcdef"
+        val structure = UrlStructureAnalyzer.analyze(url)
+
+        assertTrue(structure.isKnownLegitimate)
+        assertFalse("Normal session_id parameter should not flag path anomaly", structure.hasPathAnomaly)
+        assertFalse("Normal session_id parameter should not flag lookalike", structure.hasPathLookalike)
+        assertTrue("No threats should be flagged for legitimate domain with session_id", structure.detectedThreats.isEmpty())
+    }
+
+    @Test
+    fun testLegitimateDomainWithDynamicQueryParameters() {
+        // Test Case 3: Legitimate domain + dynamic query parameters (e.g. session_id & day_id)
+        val url = "https://ictkerala.org/app/activity/login?session_id=e7b4c910fa328b9c&day_id=45&timestamp=1710748800"
+        val structure = UrlStructureAnalyzer.analyze(url)
+
+        assertTrue(structure.isKnownLegitimate)
+        assertFalse(structure.hasPathAnomaly)
+        assertFalse(structure.hasPathLookalike)
+        assertEquals(0, structure.pathAnomalyScore)
+        assertTrue(structure.detectedThreats.isEmpty())
+    }
+
+    @Test
+    fun testSuspiciousLookalikeDomainWithLoginIsFlagged() {
+        // Test Case 4: Suspicious lookalike domain + /login
+        val url = "https://ictkerala-portal.top/app/activity/login"
+        val structure = UrlStructureAnalyzer.analyze(url)
+
+        assertFalse("Untrusted lookalike domain must not be marked legitimate", structure.isKnownLegitimate)
+        assertEquals("top", structure.suspiciousTld)
+        assertTrue("Login on suspicious domain should trigger login context", structure.hasLoginContext)
+        val threatIntel = ThreatIntelligenceService.evaluate(structure.cleanHost, structure.path, url)
+        assertTrue("Untrusted host with login path should trigger threat intelligence signature",
+            threatIntel.threatSignatures.any { it.contains("Credential harvesting", ignoreCase = true) })
+    }
+
+    @Test
+    fun testSuspiciousDomainWithSessionIdIsFlagged() {
+        // Test Case 5: Suspicious domain + session_id
+        val url = "http://secure-verify-account.click/login?session_id=a1b2c3d4e5f67890"
+        val structure = UrlStructureAnalyzer.analyze(url)
+
+        assertFalse(structure.isKnownLegitimate)
+        assertEquals("click", structure.suspiciousTld)
+        assertTrue(structure.hasLoginContext)
+        val ml = SupervisedUrlClassifier.predict(url)
+        assertTrue("Untrusted HTTP domain with login and sensitive keywords must have elevated ML risk", ml.probability > 0.5f)
+    }
+
+    @Test
+    fun testLegitimateDomainWithSuspiciousSubdomainIsFlagged() {
+        // Test Case 6: Legitimate domain with a suspicious/typosquatted subdomain
+        // E.g., 'retaii' (lookalike of 'retail') on legitimate 'onlinesbi.sbi'
+        val url = "https://retaii.onlinesbi.sbi/retail/login.htm"
+        val structure = UrlStructureAnalyzer.analyze(url)
+
+        assertTrue("Subdomain lookalike must be detected", structure.hasSubdomainLookalike)
+        assertFalse("Subdomain typosquat must invalidate known legitimate status", structure.isKnownLegitimate)
+        assertTrue(structure.detectedThreats.any { it.contains("retaii") && it.contains("retail") })
+    }
+
+    @Test
+    fun testLegitimateDomainWithTypoInPathIsFlagged() {
+        // Test Case 7: Legitimate domain with a typo in the path (e.g. /retial/ instead of /retail/)
+        val url = "https://retail.onlinesbi.sbi/retial/login"
+        val structure = UrlStructureAnalyzer.analyze(url)
+
+        assertTrue("Host is known legitimate", structure.isKnownLegitimate)
+        assertTrue("Typo in path segment must be detected", structure.hasPathLookalike || structure.hasPathAnomaly)
+        assertTrue(structure.detectedThreats.any { it.contains("retial") && it.contains("retail") })
+    }
+
+    @Test
+    fun testSensitiveQueryParameterRedaction() {
+        // Verifies session IDs, day IDs, tokens, and long hex hashes are properly redacted
+        val query = "session_id=e7b4c910fa328b9c12345678&day_id=45&view=dashboard&token=sec_9948201a4e&client=web"
+        val redacted = com.example.domain.PathAnomalyDetector.redactSensitiveQueryParams(query)
+
+        assertTrue("session_id value should be redacted", redacted.contains("session_id=[REDACTED]"))
+        assertTrue("day_id value should be redacted", redacted.contains("day_id=[REDACTED]"))
+        assertTrue("token value should be redacted", redacted.contains("token=[REDACTED]"))
+        assertTrue("view parameter value should remain unredacted", redacted.contains("view=dashboard"))
+        assertTrue("client parameter value should remain unredacted", redacted.contains("client=web"))
+        assertFalse("Raw session token value must not appear in redacted output", redacted.contains("e7b4c910fa328b9c12345678"))
     }
 }
 

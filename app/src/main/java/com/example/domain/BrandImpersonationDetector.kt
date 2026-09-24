@@ -391,6 +391,36 @@ object BrandImpersonationDetector {
         val rootDomain = DomainUtils.extractRootDomain(hostLower)
         val contextLower = contextText.lowercase()
         val domainTokens = DomainUtils.extractDomainTokens(hostLower)
+        val sub = DomainUtils.extractSubdomain(hostLower)
+
+        // 0. Subdomain Typosquatting / Impersonation Check:
+        // A trusted parent domain (e.g. 'onlinesbi.sbi', 'paypal.com') must NEVER make an arbitrary
+        // lookalike subdomain (e.g. 'retaii', 'retial', 'retaiI') safe!
+        if (sub.isNotBlank()) {
+            val subLabels = sub.split(".", "-").filter { it.isNotBlank() }
+            for (label in subLabels) {
+                val subMatch = TyposquattingDetector.detect(label)
+                if (subMatch != null) {
+                    val matchedBrand = TARGET_BRANDS.firstOrNull { brand ->
+                        brand.officialDomains.any { off ->
+                            hostLower == off || hostLower.endsWith(".$off") || rootDomain == off ||
+                            off.endsWith(".$rootDomain") || rootDomain.endsWith(".$off")
+                        } || brand.keywords.any { kw -> kw.lowercase().replace(" ", "") == subMatch.targetKeyword }
+                    }
+
+                    val brandName = matchedBrand?.name ?: "Official Banking / Service Provider"
+                    val primaryOfficial = matchedBrand?.officialDomains?.firstOrNull() ?: rootDomain
+
+                    return BrandImpersonationResult(
+                        isImpersonating = true,
+                        impersonatedBrand = brandName,
+                        legitimateDomain = primaryOfficial,
+                        mismatchSeverity = "Critical",
+                        explanation = "Subdomain '$sub' on '$rootDomain' is an unauthorized lookalike/typosquat of official $brandName service '${subMatch.targetKeyword}' ('$label' imitates '${subMatch.targetKeyword}'). Official portal is '$primaryOfficial'."
+                    )
+                }
+            }
+        }
 
         // 1. If domain is RBI-regulated .bank.in, State Bank of India's .sbi, or Indian Banking Domain:
         if (DomainUtils.isIndianBankingDomain(hostLower)) {

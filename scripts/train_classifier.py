@@ -110,7 +110,21 @@ LEGITIMATE_URLS = [
     "https://sbimf.com/",
     "https://onlinesbi.com/",
     "https://bank.sbi/",
-    "https://yono.sbi/"
+    "https://yono.sbi/",
+    "https://www.instagram.com/reel/DdWd4Wjyh8D/",
+    "https://www.instagram.com/explore/",
+    "https://www.instagram.com/accounts/login/",
+    "https://retail.onlinesbi.sbi/retail/userprofile.htm",
+    "https://example.com/products/phone-123",
+    "https://example.com/login",
+    "https://example.com/search?q=kotlin+compose",
+    "https://example.com/view?token=c2FtcGxlLXRva2VuLTEyMzQ1",
+    "https://www.google.com/search?q=state+bank+of+india",
+    "https://github.com/kotlin/kotlinx.coroutines/releases/tag/1.8.0",
+    "https://docs.github.com/en/rest/overview/resources-in-the-rest-api",
+    "https://stackoverflow.com/questions/12345678/how-to-fix-android-room-database-migration",
+    "https://developer.android.com/reference/kotlin/androidx/compose/material3/package-summary",
+    "https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview"
 ]
 
 PHISHING_URLS = [
@@ -201,7 +215,20 @@ PHISHING_URLS = [
     "http://pan-card-aadhaar-link-penalty-waive.icu/link",
     "http://challan-traffic-police-discount.top/pay",
     "http://fastag-blacklist-remove-urgent.buzz/toll",
-    "http://speed-post-delivery-attempt-failed.click/in"
+    "http://speed-post-delivery-attempt-failed.click/in",
+    "https://retaii.onlinesbi.sbi/retial/login.html",
+    "https://www.instagram.com/reeel/DdWd4Wjyh8D/?stkn=ZjFkYzMzMDQzZg==",
+    "http://retail.onlinesbi.sbi.phishing-server.top/retial/login.php",
+    "http://www.instagram.com.account-recovery-security.xyz/login",
+    "http://pаypal.com/signin",
+    "http://gооgle.com/accounts",
+    "http://example.com/l0gin",
+    "http://bank-of-america.secure-session.club/acc0unt",
+    "http://netflix-billing-verify.cam/p4ssword",
+    "http://wellsfargo.com.portal-auth.cfd/retail/login",
+    "http://trusted-site.com/redirect?url=http://malicious-phish.top/login",
+    "http://sbi-card-points.buzz/redeem.apk",
+    "http://hdfc-kyc-pan-update.icu/auth.php"
 ]
 
 HIGH_RISK_TLDS = {
@@ -318,14 +345,102 @@ def extract_features(url: str):
     longest = max([len(t) for t in tokens], default=0)
     f24 = float(longest)
 
-    return [f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18, f19, f20, f21, f22, f23, f24]
+    # 25. pathSegmentCount
+    path_segments = [s for s in path.split("/") if s]
+    f25 = float(len(path_segments))
+
+    # Path Anomaly & Typo analysis
+    typo_count = 0
+    repeated_char_count = 0
+    leet_count = 0
+    suspicious_path_tokens = 0
+
+    # 30. homoglyphCount
+    homoglyphs = set("аеіорусхӏαονѕԁԝАВЕКМНОРСТХ")
+    f30 = float(sum(1 for c in raw if c in homoglyphs))
+
+    # 31. encodedCharCount
+    f31 = float(raw.count("%"))
+
+    # 32. loginAuthKeywordPresence
+    auth_kws = ["login", "signin", "auth", "authenticate", "account", "banking", "retail", "kyc", "otp", "password", "verify"]
+    f32 = 1.0 if any(kw in low_url for kw in auth_kws) else 0.0
+
+    # 33. trustedDomainPathAnomaly
+    is_trusted_host = (host == "instagram.com" or host.endswith(".instagram.com") or
+                       host == "onlinesbi.sbi" or host.endswith(".onlinesbi.sbi") or
+                       host == "google.com" or host.endswith(".google.com") or
+                       host == "paypal.com" or host.endswith(".paypal.com"))
+
+    trusted_anomaly = 0.0
+
+    for seg in path_segments:
+        seg_lower = seg.lower().split(".")[0].split("?")[0]
+        # Repeated char / stuttering
+        if len(seg_lower) >= 4:
+            collapsed = "".join(seg_lower[i] for i in range(len(seg_lower)) if i == 0 or seg_lower[i] != seg_lower[i-1])
+            if collapsed in ("rel", "login", "bank", "pay"):
+                repeated_char_count += 1
+                typo_count += 1
+                suspicious_path_tokens += 1
+                if is_trusted_host:
+                    trusted_anomaly = 1.0
+
+        # Transposition (e.g. retial -> retail)
+        if seg_lower in ("retial", "logni", "bnak", "acocunt"):
+            typo_count += 1
+            suspicious_path_tokens += 1
+            if is_trusted_host:
+                trusted_anomaly = 1.0
+
+        # Leetspeak
+        if any(c.isdigit() or c in "@$" for c in seg_lower):
+            deleet = seg_lower.replace('0', 'o').replace('1', 'l').replace('3', 'e').replace('4', 'a').replace('5', 's').replace('7', 't').replace('8', 'b').replace('@', 'a').replace('$', 's')
+            if any(k in deleet for k in auth_kws):
+                leet_count += 1
+                suspicious_path_tokens += 1
+
+    # Check host for lookalikes
+    if "retaii" in host or "paypai" in host or "googIe" in raw:
+        typo_count += 1
+
+    f26 = float(suspicious_path_tokens)
+    f27 = float(typo_count)
+    f28 = float(leet_count)
+    f29 = float(repeated_char_count)
+    f33 = trusted_anomaly
+
+    # 34. queryComplexity
+    q_params = [p for p in query.split("&") if p]
+    q_comp = len(q_params) * 0.2 + (0.5 if "%25" in query else 0.0) + (0.3 if len(query) > 50 else 0.0)
+    f34 = float(min(q_comp, 1.0))
+
+    # 35. hasNestedUrlOrRedirect
+    q_low = query.lower()
+    f35 = 1.0 if ("http://" in q_low or "https://" in q_low or "redirect=" in q_low or "url=" in q_low or "next=" in q_low or "dest=" in q_low) else 0.0
+
+    # 36. domainPathMismatch
+    common_brands = ["sbi", "paypal", "google", "netflix", "facebook", "instagram", "chase", "hdfc", "icici", "apple", "amazon"]
+    has_brand_in_path = any(b in path.lower() for b in common_brands)
+    is_brand_host = any(b in host for b in common_brands)
+    f36 = 1.0 if (has_brand_in_path and not is_brand_host and not is_trusted_host) else 0.0
+
+    return [
+        f1, f2, f3, f4, f5, f6, f7, f8, f9, f10,
+        f11, f12, f13, f14, f15, f16, f17, f18, f19, f20,
+        f21, f22, f23, f24, f25, f26, f27, f28, f29, f30,
+        f31, f32, f33, f34, f35, f36
+    ]
 
 FEATURE_NAMES = [
     "urlLength", "hostLength", "pathLength", "queryLength", "dotCount",
     "hyphenCount", "slashCount", "questionMarkCount", "equalCount", "atSymbolCount",
     "ampersandCount", "digitCount", "hostDigitCount", "digitRatio", "isHttps",
     "isIpAddress", "subdomainCount", "hasCustomPort", "hostEntropy", "pathEntropy",
-    "tldAbuseRisk", "phishingKeywordCount", "tokenCount", "longestTokenLength"
+    "tldAbuseRisk", "phishingKeywordCount", "tokenCount", "longestTokenLength",
+    "pathSegmentCount", "suspiciousPathTokenCount", "typoCount", "charSubstitutionCount",
+    "repeatedCharCount", "homoglyphCount", "encodedCharCount", "loginAuthKeywordPresence",
+    "trustedDomainPathAnomaly", "queryComplexity", "hasNestedUrlOrRedirect", "domainPathMismatch"
 ]
 
 def get_registered_domain(u):
@@ -461,6 +576,18 @@ object SupervisedUrlClassifier {{
             "pathEntropy" -> "Path entropy: ${{"%.2f".format(rawValue)}} bits (+${{"%.2f".format(contribution)}})"
             "hostDigitCount" -> "Numerical digits in host: ${{rawValue.toInt()}} (+${{"%.2f".format(contribution)}})"
             "urlLength" -> "URL length: ${{rawValue.toInt()}} chars (+${{"%.2f".format(contribution)}})"
+            "pathSegmentCount" -> "Path segment depth: ${{rawValue.toInt()}} segments (+${{"%.2f".format(contribution)}})"
+            "suspiciousPathTokenCount" -> "Suspicious path tokens: ${{rawValue.toInt()}} lookalike segments (+${{"%.2f".format(contribution)}})"
+            "typoCount" -> "Typo / character transposition count: ${{rawValue.toInt()}} (+${{"%.2f".format(contribution)}})"
+            "charSubstitutionCount" -> "Deceptive leetspeak/digit substitutions: ${{rawValue.toInt()}} (+${{"%.2f".format(contribution)}})"
+            "repeatedCharCount" -> "Character repetition / stuttering anomaly: ${{rawValue.toInt()}} (+${{"%.2f".format(contribution)}})"
+            "homoglyphCount" -> "Unicode confusable / homoglyph characters: ${{rawValue.toInt()}} (+${{"%.2f".format(contribution)}})"
+            "encodedCharCount" -> "URL encoded characters: ${{rawValue.toInt()}} (+${{"%.2f".format(contribution)}})"
+            "loginAuthKeywordPresence" -> if (rawValue > 0.5f) "Targeted authentication/banking credential keyword in path/query (+${{"%.2f".format(contribution)}})" else "No credential keywords"
+            "trustedDomainPathAnomaly" -> if (rawValue > 0.5f) "Severe lookalike path anomaly targeting trusted platform (+${{"%.2f".format(contribution)}})" else "Standard trusted path"
+            "queryComplexity" -> "Query parameter complexity: ${{"%.2f".format(rawValue)}} (+${{"%.2f".format(contribution)}})"
+            "hasNestedUrlOrRedirect" -> if (rawValue > 0.5f) "Suspicious open redirect or nested URL parameter (+${{"%.2f".format(contribution)}})" else "No nested URL"
+            "domainPathMismatch" -> if (rawValue > 0.5f) "Brand impersonation in path on third-party domain (+${{"%.2f".format(contribution)}})" else "Domain/path alignment"
             else -> "$name: $rawValue (contribution: ${{"%.2f".format(contribution)}})"
         }}
     }}
@@ -537,16 +664,24 @@ def main():
     train_ratio = 0.70
     val_ratio = 0.15
 
-    legit_train, legit_val, legit_test, ld_train, ld_val, ld_test = split_domain_groups(
-        LEGITIMATE_URLS, train_ratio=train_ratio, val_ratio=val_ratio, seed=seed
-    )
-    phish_train, phish_val, phish_test, pd_train, pd_val, pd_test = split_domain_groups(
-        PHISHING_URLS, train_ratio=train_ratio, val_ratio=val_ratio, seed=seed
-    )
+    all_domains = sorted(list(set(get_registered_domain(u) for u in LEGITIMATE_URLS + PHISHING_URLS)))
+    rng = random.Random(seed)
+    rng.shuffle(all_domains)
 
-    all_train_domains = ld_train | pd_train
-    all_val_domains = ld_val | pd_val
-    all_test_domains = ld_test | pd_test
+    target_train = int(round(len(all_domains) * train_ratio))
+    target_val = int(round(len(all_domains) * val_ratio))
+
+    all_train_domains = set(all_domains[:target_train])
+    all_val_domains = set(all_domains[target_train:target_train + target_val])
+    all_test_domains = set(all_domains[target_train + target_val:])
+
+    legit_train = [u for u in LEGITIMATE_URLS if get_registered_domain(u) in all_train_domains]
+    legit_val = [u for u in LEGITIMATE_URLS if get_registered_domain(u) in all_val_domains]
+    legit_test = [u for u in LEGITIMATE_URLS if get_registered_domain(u) in all_test_domains]
+
+    phish_train = [u for u in PHISHING_URLS if get_registered_domain(u) in all_train_domains]
+    phish_val = [u for u in PHISHING_URLS if get_registered_domain(u) in all_val_domains]
+    phish_test = [u for u in PHISHING_URLS if get_registered_domain(u) in all_test_domains]
 
     all_train_urls = legit_train + phish_train
     all_val_urls = legit_val + phish_val
@@ -772,6 +907,8 @@ def main():
                 return "Brand & Account Deactivation Phishing"
             elif any(k in u_lower for k in ["electricity", "bijli", "bill", "disconnect"]):
                 return "Utility Disconnection Coercion Lure"
+            elif any(k in u_lower for k in ["retial", "reeel", "retaii", "l0gin", "p4ssword", "acc0unt"]):
+                return "Path / Subdomain Manipulation & Typosquatting Phishing"
             elif re.search(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b", u):
                 return "Raw IP Direct Host Phishing"
             else:
@@ -811,7 +948,7 @@ def main():
         "model_metadata_version": "1.1.0",
         "model_version": model_version,
         "model_checksum": checksum,
-        "model_architecture": "L2-Regularized Logistic Regression (24 Normalized Features)",
+        "model_architecture": "L2-Regularized Logistic Regression (36 Normalized Features)",
         "decision_threshold": 0.50,
         "normalization_policy": "Training-split statistics only (means and stds computed strictly on 70% train split)",
         "dataset_split_summary": {

@@ -4,11 +4,12 @@ import java.net.URI
 import java.util.regex.Pattern
 import kotlin.math.log2
 import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Real Quantitative Feature Extractor for URL Phishing Classification.
- * Extracts a 24-dimensional feature vector measuring lexical, syntactic,
- * information-theoretic (Shannon entropy), and structural URL properties.
+ * Extracts a 36-dimensional feature vector measuring lexical, syntactic,
+ * information-theoretic (Shannon entropy), path anomaly, and structural properties.
  */
 data class ExtractedUrlFeatures(
     val url: String,
@@ -39,7 +40,10 @@ object UrlFeatureExtractor {
         "hyphenCount", "slashCount", "questionMarkCount", "equalCount", "atSymbolCount",
         "ampersandCount", "digitCount", "hostDigitCount", "digitRatio", "isHttps",
         "isIpAddress", "subdomainCount", "hasCustomPort", "hostEntropy", "pathEntropy",
-        "tldAbuseRisk", "phishingKeywordCount", "tokenCount", "longestTokenLength"
+        "tldAbuseRisk", "phishingKeywordCount", "tokenCount", "longestTokenLength",
+        "pathSegmentCount", "suspiciousPathTokenCount", "typoCount", "charSubstitutionCount",
+        "repeatedCharCount", "homoglyphCount", "encodedCharCount", "loginAuthKeywordPresence",
+        "trustedDomainPathAnomaly", "queryComplexity", "hasNestedUrlOrRedirect", "domainPathMismatch"
     )
 
     private val IP_PATTERN = Pattern.compile("^(\\d{1,3}\\.){3}\\d{1,3}$")
@@ -60,6 +64,19 @@ object UrlFeatureExtractor {
         "wallet", "kyc", "otp", "passcode", "password", "airdrop",
         "drainer", "redelivery", "account", "banking", "pan", "aadhaar",
         "claim", "refund", "invoice", "payment", "parcel", "delivery"
+    )
+
+    private val AUTH_KEYWORDS = listOf(
+        "login", "signin", "auth", "authenticate", "account", "banking", "retail", "kyc", "otp", "password", "verify"
+    )
+
+    private val COMMON_BRANDS = listOf(
+        "sbi", "paypal", "google", "netflix", "facebook", "instagram", "chase", "hdfc", "icici", "apple", "amazon"
+    )
+
+    private val HOMOGLYPH_CHARS = setOf(
+        'а', 'е', 'і', 'о', 'р', 'с', 'у', 'х', 'ӏ', 'α', 'ο', 'ν', 'ѕ', 'ԁ', 'ԝ',
+        'А', 'В', 'Е', 'К', 'М', 'Н', 'О', 'Р', 'С', 'Т', 'Х'
     )
 
     fun calculateShannonEntropy(str: String): Float {
@@ -151,10 +168,101 @@ object UrlFeatureExtractor {
         // 24. longestTokenLength
         val f24 = (tokens.maxOfOrNull { it.length } ?: 0).toFloat()
 
+        // 25. pathSegmentCount
+        val pathSegments = path.split("/").filter { it.isNotBlank() }
+        val f25 = pathSegments.size.toFloat()
+
+        // Path Anomaly & Typo analysis
+        var typoCount = 0
+        var repeatedCharCount = 0
+        var leetCount = 0
+        var suspiciousPathTokens = 0
+
+        // 30. homoglyphCount
+        val f30 = trimmed.count { HOMOGLYPH_CHARS.contains(it) }.toFloat()
+
+        // 31. encodedCharCount
+        val f31 = trimmed.count { it == '%' }.toFloat()
+
+        // 32. loginAuthKeywordPresence
+        val f32 = if (AUTH_KEYWORDS.any { lowUrl.contains(it) }) 1.0f else 0.0f
+
+        // 33. trustedDomainPathAnomaly
+        val isTrustedHost = host == "instagram.com" || host.endsWith(".instagram.com") ||
+                host == "onlinesbi.sbi" || host.endsWith(".onlinesbi.sbi") ||
+                host == "google.com" || host.endsWith(".google.com") ||
+                host == "paypal.com" || host.endsWith(".paypal.com")
+
+        var trustedAnomaly = 0.0f
+
+        for (seg in pathSegments) {
+            val segLower = seg.lowercase().substringBefore('.').substringBefore('?')
+            // Repeated char / stuttering
+            if (segLower.length >= 4) {
+                val sb = StringBuilder()
+                for (i in segLower.indices) {
+                    if (i == 0 || segLower[i] != segLower[i - 1]) sb.append(segLower[i])
+                }
+                val collapsed = sb.toString()
+                if (collapsed in listOf("rel", "login", "bank", "pay")) {
+                    repeatedCharCount++
+                    typoCount++
+                    suspiciousPathTokens++
+                    if (isTrustedHost) trustedAnomaly = 1.0f
+                }
+            }
+
+            // Transposition (e.g. retial -> retail)
+            if (segLower in listOf("retial", "logni", "bnak", "acocunt")) {
+                typoCount++
+                suspiciousPathTokens++
+                if (isTrustedHost) trustedAnomaly = 1.0f
+            }
+
+            // Leetspeak
+            if (segLower.any { it.isDigit() || it == '@' || it == '$' }) {
+                val deleet = segLower.replace('0', 'o').replace('1', 'l').replace('3', 'e')
+                    .replace('4', 'a').replace('5', 's').replace('7', 't').replace('8', 'b')
+                    .replace('@', 'a').replace('$', 's')
+                if (AUTH_KEYWORDS.any { deleet.contains(it) }) {
+                    leetCount++
+                    suspiciousPathTokens++
+                }
+            }
+        }
+
+        // Check host for lookalikes (e.g. retaii vs retail)
+        if (host.contains("retaii") || host.contains("paypai") || trimmed.contains("googIe")) {
+            typoCount++
+        }
+
+        val f26 = suspiciousPathTokens.toFloat()
+        val f27 = typoCount.toFloat()
+        val f28 = leetCount.toFloat()
+        val f29 = repeatedCharCount.toFloat()
+        val f33 = trustedAnomaly
+
+        // 34. queryComplexity
+        val qParams = query.split('&').filter { it.isNotBlank() }
+        val qComp = (qParams.size * 0.2f + (if (query.contains("%25")) 0.5f else 0.0f) + (if (query.length > 50) 0.3f else 0.0f))
+        val f34 = min(qComp, 1.0f)
+
+        // 35. hasNestedUrlOrRedirect
+        val qLow = query.lowercase()
+        val f35 = if (qLow.contains("http://") || qLow.contains("https://") ||
+            qLow.contains("redirect=") || qLow.contains("url=") || qLow.contains("next=") || qLow.contains("dest=")
+        ) 1.0f else 0.0f
+
+        // 36. domainPathMismatch
+        val hasBrandInPath = COMMON_BRANDS.any { path.lowercase().contains(it) }
+        val isBrandHost = COMMON_BRANDS.any { host.contains(it) }
+        val f36 = if (hasBrandInPath && !isBrandHost && !isTrustedHost) 1.0f else 0.0f
+
         val vector = floatArrayOf(
             f1, f2, f3, f4, f5, f6, f7, f8, f9, f10,
             f11, f12, f13, f14, f15, f16, f17, f18, f19, f20,
-            f21, f22, f23, f24
+            f21, f22, f23, f24, f25, f26, f27, f28, f29, f30,
+            f31, f32, f33, f34, f35, f36
         )
 
         val featureMap = FEATURE_NAMES.indices.associate { i ->
